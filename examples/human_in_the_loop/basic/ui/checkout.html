@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Normcore Store</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #fafafa; }
+        .header { background: #333; color: white; padding: 20px; text-align: center; margin-bottom: 30px; border-radius: 10px; }
+        .product { border: 1px solid #ddd; padding: 20px; margin-bottom: 20px; border-radius: 10px; background: white; }
+        .product img { width: 200px; height: 200px; background: #f0f0f0; display: block; margin: 0 auto 20px; }
+        .product-list { cursor: pointer; display: grid; grid-template-columns: 160px 1fr auto; gap: 20px; height: 160px; }
+        .product-list img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
+        .product-info { align-self: center; }
+        .chevron-icon { align-self: center; font-size: 20px; color: #999; }
+        .product-title { margin: 0 0 10px 0; }
+        .product-rating { margin: 0 0 10px 0; color: #f39c12; }
+        .rating-score { color: #666; font-size: 14px; }
+        .product-detail { width: 100%; height: 300px; object-fit: cover; margin: 0 auto 20px; display: block; border-radius: 10px; }
+        .price { font-size: 24px; color: #e74c3c; font-weight: bold; }
+        .button { background: #3498db; color: white; padding: 15px 30px; border: none; font-size: 16px; cursor: pointer; margin: 10px 0; border-radius: 8px; }
+        .button:hover { background: #2980b9; }
+        .success { background: #27ae60; }
+        .success-page { text-align: center; padding: 50px; }
+        .success-title { color: #27ae60; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Normcore Store</h1>
+        <p>Your one-stop shop for everything</p>
+    </div>
+
+    <div id="product-list-page">
+        <h2>Our Products</h2>
+        <div id="products-container"></div>
+    </div>
+
+    <div id="product-page" class="hidden">
+        <div class="product" id="product-details"></div>
+    </div>
+
+    <div id="confirmation-page" class="hidden">
+        <h2>Order Confirmation</h2>
+        <div class="product" id="confirm-product-info"></div>
+        <div class="product">
+            <h3>Shipping Details:</h3>
+            <p>Name: Alex Smith</p>
+            <p>Email: alex@example.com</p>
+            <p>Address: 123 Main St, City, State</p>
+        </div>
+        <button class="button" onclick="showSuccess()">Complete Purchase</button>
+    </div>
+
+    <div id="success-page" class="hidden">
+        <div class="success-page">
+            <h2 class="success-title">Order Successful!</h2>
+            <p>Thank you for your purchase. Your order has been confirmed.</p>
+            <p><strong>Order #12345</strong></p>
+        </div>
+    </div>
+
+    <script>
+        const products = {
+            tshirt: { 
+                name: 'Normcore T Shirt', 
+                price: '$29.99', 
+                image: 'tshirt.png',
+                rating: '★★★★☆',
+                score: '(4.2)',
+                description: 'Classic minimalist t-shirt in premium cotton. Perfect for everyday wear with a timeless, understated design.'
+            },
+            pants: { 
+                name: 'Normcore Pants', 
+                price: '$49.99', 
+                image: 'pants.png',
+                rating: '★★★★★',
+                score: '(4.8)',
+                description: 'Comfortable and versatile pants with a modern fit. Made from high-quality fabric for all-day comfort and style.'
+            }
+        };
+
+        let currentProduct = null;
+
+        function renderProducts() {
+            const container = document.getElementById('products-container');
+            container.innerHTML = Object.keys(products).map(id => {
+                const p = products[id];
+                return `
+                    <div class="product product-list" onclick="showProductDetails('${id}')">
+                        <img src="${p.image}" alt="${p.name}">
+                        <div class="product-info">
+                            <h3 class="product-title">${p.name}</h3>
+                            <div class="product-rating">${p.rating} <span class="rating-score">${p.score}</span></div>
+                            <div class="price">${p.price}</div>
+                        </div>
+                        <div class="chevron-icon">›</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showProductDetails(productId) {
+            currentProduct = products[productId];
+            const details = document.getElementById('product-details');
+            details.innerHTML = `
+                <img src="${currentProduct.image}" alt="${currentProduct.name}" class="product-detail">
+                <h2>${currentProduct.name}</h2>
+                <p>${currentProduct.description}</p>
+                <div class="price">${currentProduct.price}</div>
+                <button class="button" onclick="showConfirmation()">Add to Cart</button>
+            `;
+            
+            document.getElementById('product-list-page').classList.add('hidden');
+            document.getElementById('product-page').classList.remove('hidden');
+        }
+
+        function showConfirmation() {
+            document.getElementById('confirm-product-info').innerHTML = `
+                <h3>${currentProduct.name}</h3>
+                <div class="price">${currentProduct.price}</div>
+            `;
+            
+            document.getElementById('product-page').classList.add('hidden');
+            document.getElementById('confirmation-page').classList.remove('hidden');
+        }
+
+        function showSuccess() {
+            document.getElementById('confirmation-page').classList.add('hidden');
+            document.getElementById('success-page').classList.remove('hidden');
+        }
+
+        // Initialize the page
+        renderProducts();
+    </script>
+</body>
+</html>
