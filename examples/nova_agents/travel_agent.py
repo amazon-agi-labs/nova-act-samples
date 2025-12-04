@@ -5,7 +5,7 @@ Demonstrates how to use Nova Act as a tool within a Strands Agent configured wit
 to extract destinations from the web and generate travel recommendations using Nova.
 
 Usage:
-python -m examples.nova_agents.travel_agent --num_planets 5
+python -m examples.nova_agents.travel_agent --num_destinations 5
 """
 
 import os
@@ -14,7 +14,7 @@ import fire
 from nova_act import NovaAct, workflow
 from pydantic import BaseModel
 from strands import Agent, tool
-from strands_nova import NovaModel
+from strands_amazon_nova import NovaAPIModel
 
 from examples.utils import get_workflow_kwargs
 
@@ -25,7 +25,7 @@ if not nova_api_key:
     raise ValueError("NOVA_API_KEY environment variable is required")
 
 # Initialize Nova Model Provider for Strands
-nova_model = NovaModel(
+nova_model = NovaAPIModel(
     api_key=nova_api_key,
     model_id="nova-lite-v2",
     params={"system_tools": ["nova_grounding"]},

@@ -3,6 +3,9 @@ Financial Analyst using Nova Act and Nova API.
 
 A Strands Agent that uses Nova Act to extract stock symbols from websites
 and Nova model to analyze market trends and provide insights into ticker performance.
+
+Usage:
+python -m examples.nova_agents.financial_analyst --website_url <url>
 """
 
 import os
@@ -10,7 +13,7 @@ import fire
 from nova_act import NovaAct, workflow
 from pydantic import BaseModel
 from strands import Agent, tool
-from strands_nova import NovaModel
+from strands_amazon_nova import NovaAPIModel
 
 from examples.utils import get_workflow_kwargs
 
@@ -20,7 +23,7 @@ if not nova_api_key:
     raise ValueError("NOVA_API_KEY environment variable is required")
 
 # Initialize Nova Model Provider for Strands
-nova_model = NovaModel(
+nova_model = NovaAPIModel(
     api_key=nova_api_key,
     model_id="nova-lite-v2",
     params={"system_tools": ["nova_grounding"]},

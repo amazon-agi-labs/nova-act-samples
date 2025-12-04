@@ -1,4 +1,2 @@
 nova-act
-strands-agents>=1.2.0
-strands-agents-tools
-strands-nova
+strands-amazon-nova>=1.0.2,<2.0.0
