@@ -7,7 +7,7 @@ Examples demonstrating how to use Nova Act with the Nova API to build intelligen
 1. Complete the [Getting Started](../README.md#getting-started) section in the main examples directory before running these examples.
 2. Install dependencies:
    ```bash
-   pip install -r requirements.txt
+   pip install -r examples/nova_agents/requirements.txt
    ```
 3. Generate a Nova API key at [nova.amazon.com/dev/api](https://nova.amazon.com/dev/api) and set it as an environment variable:
    ```bash
