@@ -36,11 +36,23 @@ function getRegion(): string {
   return region;
 }
 
+function getApiKey(): string {
+  const apiKey = process.env['NOVA_ACT_API_KEY'];
+  
+  if (!apiKey) {
+    throw new Error('Nova Act API key required. Set NOVA_ACT_API_KEY environment variable.');
+  }
+  
+  return apiKey;
+}
+
 const app = new cdk.App();
 const env = getEnvironment();
+const apiKey = getApiKey();
 
 new AgentCoreStack(app, 'NovaActAgentCoreStack', {
   env,
   agentName: 'NovaActAgent',
-  description: 'Nova Act Agent running on AgentCore Runtime'
+  description: 'Nova Act Agent running on AgentCore Runtime',
+  apiKey
 });

@@ -8,6 +8,7 @@ import { Construct } from 'constructs';
 interface AgentCoreStackProps extends cdk.StackProps {
   agentName?: string;
   description?: string;
+  apiKey: string;
 }
 
 /**
@@ -27,7 +28,7 @@ export class AgentCoreStack extends cdk.Stack {
     });
 
     const agentCoreRole = this.createAgentCoreRole();
-    const environmentVariables = this.createEnvironmentVariables();
+    const environmentVariables = this.createEnvironmentVariables(props.apiKey);
 
     this.agentCore = new bedrockAgentCore.CfnRuntime(this, 'AgentCoreRuntime', {
       agentRuntimeName: props.agentName || 'NovaActAgent',
@@ -159,11 +160,12 @@ export class AgentCoreStack extends cdk.Stack {
     });
   }
 
-  private createEnvironmentVariables(): { [key: string]: string } {
+  private createEnvironmentVariables(apiKey: string): { [key: string]: string } {
     return {
       NOVA_ACT_BROWSER_ARGS: '--disable-gpu --disable-dev-shm-usage --no-sandbox --single-process',
       NOVA_ACT_HEADLESS: 'true',
       OTEL_SDK_DISABLED: 'true',
+      NOVA_ACT_API_KEY: apiKey,
     };
   }
 }
