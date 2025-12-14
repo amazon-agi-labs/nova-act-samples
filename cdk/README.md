@@ -7,17 +7,9 @@ This directory contains ready-to-use examples for deploying Nova Act on various 
 Before using any example, ensure you have:
 
 1. **AWS CLI** configured with appropriate permissions
-2. **CDK CLI** installed and bootstrapped:
-   ```bash
-   npm install -g aws-cdk
-   cdk bootstrap  # Required for first-time CDK use
-   ```
+2. **Node.js** installed (version 18 or later)
 3. **Docker** installed and running (for containerized examples)
-4. **Environment Variables** set for your AWS account:
-   ```bash
-   export CDK_DEFAULT_ACCOUNT="123456789012"
-   export CDK_DEFAULT_REGION="us-east-1"
-   ```
+4. **Nova Act API Key** - Get yours at [nova.amazon.com/act](https://nova.amazon.com/act)
 
 ## 📁 Available Service Examples
 
@@ -32,14 +24,29 @@ Before using any example, ensure you have:
 
 ## 🚀 Quick Start
 
-1. **Choose your service** from the table above based on your use case
+1. **Install dependencies**:
+   ```bash
+   cd cdk/
+   npm ci
+   ```
+
 2. **Set environment variables**:
    ```bash
    export CDK_DEFAULT_ACCOUNT="your-account-id"
    export CDK_DEFAULT_REGION="your-region"
+   export NOVA_ACT_API_KEY="your-api-key"
    ```
-3. **Navigate to service directory**: `cd [service-directory]/`
-4. **Deploy**: `cdk deploy --app "npx ts-node [service]-app.ts"`
+
+3. **Bootstrap CDK** (first-time only):
+   ```bash
+   npx cdk bootstrap
+   ```
+
+4. **Deploy a service**:
+   ```bash
+   cd [service-directory]/
+   npx cdk deploy --app "npx ts-node [service]-app.ts"
+   ```
 
 ## 🔐 Authentication
 
@@ -48,7 +55,6 @@ Before using any example, ensure you have:
 - **Fargate**: Task role with comprehensive AWS permissions
 - **ECS**: Task role with Nova Act service permissions
 - **AgentCore**: Runtime role with Bedrock and browser session access
-- **EC2**: Instance role with SSM and Nova Act permissions
 
 ## 🧪 Testing & Validation
 
@@ -97,7 +103,6 @@ All examples include:
 | **Fargate** | ✅ Yes | Fully managed, secure |
 | **ECS** | ✅ Yes | Requires capacity management |
 | **AgentCore** | ✅ Yes | Native AWS integration |
-
 
 ## 🆘 Need Help?
 
