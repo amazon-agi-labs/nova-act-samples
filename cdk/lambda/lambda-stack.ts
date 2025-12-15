@@ -11,13 +11,19 @@ type NovaActLambdaProps = {
   timeout?: Duration;
   environment?: { [key: string]: string };
   role?: iam.IRole;
+  apiKey: string;
 };
 
-function createNovaActEnvironment(additionalEnvironment: { [key: string]: string } = {}): { [key: string]: string } {
+interface NovaActLambdaStackProps extends cdk.StackProps {
+  apiKey: string;
+}
+
+function createNovaActEnvironment(apiKey: string, additionalEnvironment: { [key: string]: string } = {}): { [key: string]: string } {
   return {
     NOVA_ACT_BROWSER_ARGS: "--disable-gpu --disable-dev-shm-usage --no-sandbox --single-process",
     NOVA_ACT_HEADLESS: "true",
     NOVA_ACT_SKIP_PLAYWRIGHT_INSTALL: "1",
+    NOVA_ACT_API_KEY: apiKey,
     ...additionalEnvironment,
   };
 }
@@ -42,13 +48,14 @@ export class NovaActLambda extends Construct {
       timeout = Duration.minutes(15),
       environment = {},
       role,
+      apiKey,
     }: NovaActLambdaProps
   ) {
     super(scope, id);
 
     this.containerImage = createContainerImage(this, dockerfilePath);
     
-    const environmentVariables = createNovaActEnvironment(environment);
+    const environmentVariables = createNovaActEnvironment(apiKey, environment);
     
     const executionRole = role || new iam.Role(this, "ExecutionRole", {
       assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
@@ -82,11 +89,12 @@ export class NovaActLambda extends Construct {
 }
 
 export class NovaActLambdaStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props: NovaActLambdaStackProps) {
     super(scope, id, props);
 
-    new NovaActLambda(this, 'NovaActWithIAM', {
+    new NovaActLambda(this, 'NovaActLambda', {
       dockerfilePath: '.',
+      apiKey: props.apiKey,
     });
   }
 }

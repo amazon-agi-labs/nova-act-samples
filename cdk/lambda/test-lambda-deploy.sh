@@ -23,14 +23,16 @@ echo "Deploying Lambda stack..."
 npx cdk deploy --app "npx ts-node lambda-app.ts" --require-approval never
 
 # Get function name
-FUNCTION_NAME=$(aws lambda list-functions --query "Functions[?starts_with(FunctionName, 'NovaActLambdaStack-NovaActWithIAMFunction')].FunctionName" --output text)
+FUNCTION_NAME=$(aws lambda list-functions --query "Functions[?starts_with(FunctionName, 'NovaActLambdaStack-NovaActLambdaFunction')].FunctionName" --output text)
 echo "Found Lambda function: $FUNCTION_NAME"
 
-# Invoke function
+# Invoke function with extended timeout
 echo "Invoking Lambda function..."
 aws lambda invoke \
   --function-name "$FUNCTION_NAME" \
-  --payload '{"prompts":["Go to google.com"],"starting_page":"https://google.com"}' \
+  --cli-binary-format raw-in-base64-out \
+  --cli-read-timeout 300 \
+  --payload '{"prompt":"Find flights from Boston to Wolf on Feb 22nd","starting_page":"https://nova.amazon.com/act/gym/next-dot/search"}' \
   response.json
 
 echo "Lambda response:"

@@ -1,19 +1,56 @@
 #!/usr/bin/env node
-import * as cdk from 'aws-cdk-lib';
-import { NovaActLambdaStack } from './lambda-stack';
+import * as cdk from "aws-cdk-lib";
+import { NovaActLambdaStack } from "./lambda-stack";
+
+/**
+ * Standalone Lambda CDK App
+ * Customers can copy this directory and deploy immediately
+ */
 
 function getEnvironment(): cdk.Environment {
-  const account = process.env.CDK_DEFAULT_ACCOUNT;
-  const region = process.env.CDK_DEFAULT_REGION;
-
-  if (!account || !region) {
-    throw new Error('CDK_DEFAULT_ACCOUNT and CDK_DEFAULT_REGION must be set');
-  }
-
+  const account = getAccountId();
+  const region = getRegion();
+  
   return { account, region };
 }
 
+function getAccountId(): string {
+  const accountEnvVars = ['CDK_DEFAULT_ACCOUNT', 'AWS_ACCOUNT_ID'];
+  const account = accountEnvVars.map(envVar => process.env[envVar]).find(Boolean);
+  
+  if (!account) {
+    throw new Error(`AWS Account ID required. Set one of: ${accountEnvVars.join(', ')}`);
+  }
+  
+  return account;
+}
+
+function getRegion(): string {
+  const regionEnvVars = ['CDK_DEFAULT_REGION', 'AWS_DEFAULT_REGION', 'AWS_REGION'];
+  const region = regionEnvVars.map(envVar => process.env[envVar]).find(Boolean);
+  
+  if (!region) {
+    throw new Error(`AWS Region required. Set one of: ${regionEnvVars.join(', ')}`);
+  }
+  
+  return region;
+}
+
+function getApiKey(): string {
+  const apiKey = process.env['NOVA_ACT_API_KEY'];
+  
+  if (!apiKey) {
+    throw new Error('Nova Act API key required. Set NOVA_ACT_API_KEY environment variable.');
+  }
+  
+  return apiKey;
+}
+
 const app = new cdk.App();
-new NovaActLambdaStack(app, 'NovaActLambdaStack', {
-  env: getEnvironment(),
+const env = getEnvironment();
+const apiKey = getApiKey();
+
+new NovaActLambdaStack(app, "NovaActLambdaStack", {
+  env,
+  apiKey
 });

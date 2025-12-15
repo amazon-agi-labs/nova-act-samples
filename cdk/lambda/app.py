@@ -1,46 +1,67 @@
+import logging
+import sys
+import os
+from nova_act import NovaAct
+
+# Configure logging for CloudWatch
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)],
+)
+logger = logging.getLogger(__name__)
+
+
 def handler(event, context):
-    print(f"Event - {event}")
-    print(f"Context - {context}")
+    logger.info(f"Handler started - Event received: {event} with context: {context}")
     
-    nova_act(event)
-    
-    print("Done!")
+    try:
+        # Get API key from environment
+        api_key = os.environ.get("NOVA_ACT_API_KEY")
+        if not api_key:
+            raise ValueError("NOVA_ACT_API_KEY environment variable is required")
 
+        # Extract parameters with defaults
+        default_prompt = "Find flights from Boston to Wolf on Feb 22nd"
+        default_starting_page = "https://nova.amazon.com/act/gym/next-dot/search"
+        if isinstance(event, dict):
+            prompt = event.get("prompt", default_prompt)
+            starting_page = event.get("starting_page", default_starting_page)
+        else:
+            prompt = default_prompt
+            starting_page = default_starting_page
 
-def nova_act(event):
-    from nova_act import NovaAct
-    
-    required_keys = ["prompts", "starting_page"]
-    for required_key in required_keys:
-        if event.get(required_key) is None:
-            raise ValueError(f"Event JSON '{required_key}' is required")
-    
-    with NovaAct(
-        chrome_channel="chromium",
-        headless=True,
-        starting_page=event.get("starting_page"),
-    ) as nova_act:
-        session_id = nova_act.get_session_id()
-        print(f"Session ID - {session_id}")
-        
-        for prompt in event.get("prompts"):
-            print(f"Prompt - {prompt}")
-            nova_act.act(prompt)
+        logger.info("Starting Nova Act...")
+        logger.info(f"Prompt: {prompt}")
+        logger.info(f"Starting page: {starting_page}")
 
-
-def playwright():
-    from playwright.sync_api import sync_playwright
-    
-    with sync_playwright() as p:
-        browser = p.chromium.launch(
-            args=["--disable-gpu", "--headless=new", "--single-process"],
-            channel="chromium",
+        with NovaAct(
+            starting_page=starting_page,
+            nova_act_api_key=api_key,
             headless=True,
-        )
-        page = browser.new_page()
-        page.goto("https://www.google.com")
-        browser.close()
-
-
-if __name__ == "__main__":
-    handler(None, None)
+            chrome_channel="chromium",
+        ) as nova:
+            logger.info("Invoking Nova Act")
+            result = nova.act(prompt)
+            logger.info(f"Nova Act result: {result}")
+            
+            return {
+                "status": "success",
+                "response": str(result),
+                "prompt": prompt,
+                "starting_page": starting_page
+            }
+            
+    except Exception as e:
+        logger.error(f"Error occurred: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return {
+            "status": "error", 
+            "response": str(e),
+            "prompt": event.get("prompt", "") if isinstance(event, dict) else "",
+            "starting_page": event.get("starting_page", "") if isinstance(event, dict) else ""
+        }
+    finally:
+        logger.info("Shutting down...")
