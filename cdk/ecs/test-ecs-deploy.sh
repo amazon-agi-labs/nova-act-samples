@@ -21,23 +21,13 @@ if ! command -v aws &> /dev/null; then
     exit 1
 fi
 
-# Install dependencies if needed
-if [ ! -d "node_modules" ]; then
-    echo "📦 Installing dependencies..."
-    npm install aws-cdk-lib constructs
-fi
-
 # Clean up any previous deployments
 echo "🧹 Cleaning up previous deployments..."
 rm -rf cdk.out
 
-# Bootstrap CDK if needed
-echo "🔧 Bootstrapping CDK..."
-cdk bootstrap --app "npx ts-node ecs-app.ts" || true
-
 # Deploy the stack
 echo "🏗️  Deploying ECS stack..."
-cdk deploy --app "npx ts-node ecs-app.ts" --require-approval never
+npx cdk deploy --app "npx ts-node ecs-app.ts" --require-approval never
 
 # Get cluster and task definition ARNs from AWS directly
 echo "🔍 Getting cluster and task definition info..."
@@ -152,7 +142,10 @@ fi
 
 # Show task logs
 echo "📋 Task logs:"
-LOG_GROUP="/aws/ecs/$STACK_NAME"
+LOG_GROUP=$(aws ecs describe-task-definition \
+    --task-definition $TASK_DEF_ARN \
+    --query 'taskDefinition.containerDefinitions[0].logConfiguration.options."awslogs-group"' \
+    --output text)
 LOG_STREAM=$(aws logs describe-log-streams \
     --log-group-name $LOG_GROUP \
     --order-by LastEventTime \
@@ -171,7 +164,7 @@ fi
 
 # Teardown
 echo "🗑️  Tearing down stack..."
-cdk destroy --app "npx ts-node ecs-app.ts" --force
+npx cdk destroy --app "npx ts-node ecs-app.ts" --force
 
 echo "🎉 Full ECS deployment test completed successfully!"
 echo "✅ Deploy → Invoke → Teardown cycle validated"

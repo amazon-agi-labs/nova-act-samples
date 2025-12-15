@@ -1,39 +1,38 @@
-# Nova Act ECS Example
+# Amazon Nova Act ECS Example
 
-This example deploys Nova Act on AWS ECS with EC2 backing instances. The deployment is self-contained with IAM role authentication.
+Deploy Amazon Nova Act on AWS ECS with EC2 backing instances using container images with API key authentication.
 
 ## Prerequisites
 
-- AWS CLI configured with appropriate permissions
-- CDK CLI installed: `npm install -g aws-cdk`
-- Docker installed and running
-- Node.js 18+ installed
-
-## Files
-
-- `ecs-stack.ts` - Complete ECS stack with NovaActEcsStack class
-- `ecs-app.ts` - CDK application entry point (IAM role authentication only)
-- `Dockerfile` - Container configuration with Playwright and Python 3.12
-- `app.py` - Sample Nova Act application with API key from environment
-- `requirements.txt` - Python dependencies (nova-act)
-- `test-ecs-deploy.sh` - Full deployment test (deploy → invoke task → teardown)
+1. See the [main CDK README](../README.md) for complete prerequisites and setup instructions.
 
 ## Quick Start
 
 ```bash
-npm install aws-cdk-lib constructs
+export CDK_DEFAULT_ACCOUNT="123456789012"
+export CDK_DEFAULT_REGION="us-east-1"
+export NOVA_ACT_API_KEY="your-api-key"
 npx cdk deploy --app "npx ts-node ecs-app.ts"
 ```
 
+## Files
+
+- `ecs-stack.ts` - Complete ECS stack with NovaActEcsStack class
+- `ecs-app.ts` - CDK application entry point with environment validation
+- `app.py` - Nova Act ECS application with error handling and structured logging
+- `Dockerfile` - Container configuration with Playwright and Python 3.12
+- `requirements.txt` - Python dependencies (nova-act)
+- `test-ecs-deploy.sh` - Complete deployment test (deploy → invoke → teardown)
+
 ## Architecture
 
-The deployment creates:
+This example creates:
 - **VPC** with private/public subnets across 2 AZs and VPC Flow Logs
 - **VPC Endpoints** for S3, ECR, ECR Docker, and CloudWatch Logs
 - **Security Group** allowing HTTPS and outbound traffic
 - **ECS Cluster** with EC2 capacity provider and container insights
-- **Auto Scaling Group** with encrypted EBS volumes (30GB)
-- **Task Definition** with Nova Act container (2048 MB memory)
+- **Auto Scaling Group** with encrypted EBS volumes
+- **Task Definition** with Nova Act container
 - **CloudWatch Logs** for monitoring
 
 ## Configuration
@@ -45,11 +44,25 @@ Default configuration:
 - **Platform**: Linux AMD64
 - **Browser Arguments**: `--disable-gpu --disable-dev-shm-usage --no-sandbox`
 
-## Authentication
+## Handler Implementation
 
-**IAM Role-Based Only**: The ECS task role provides authentication automatically. No API key configuration needed in the CDK code.
+The `app.py` file contains:
+- Nova Act workflow with ECS task implementation
+- Error handling with structured logging and exception handling
+- Nova Act API key loaded from environment variables
+- Default prompt and starting page configuration
 
-The `app.py` expects `NOVA_ACT_API_KEY` environment variable, but this should be set via task definition environment variables or removed for pure IAM authentication.
+### Payload Structure
+
+**Parameters:**
+- `NOVA_ACT_PROMPT` (optional): Environment variable for prompt to execute. Defaults to flight search example.
+- `NOVA_ACT_STARTING_PAGE` (optional): Environment variable for starting URL. Defaults to Nova Act gym.
+
+**Example environment variables:**
+```bash
+NOVA_ACT_PROMPT="Find flights from Boston to Wolf on Feb 22nd"
+NOVA_ACT_STARTING_PAGE="https://nova.amazon.com/act/gym/next-dot/search"
+```
 
 ## Task Execution
 
@@ -60,34 +73,38 @@ Tasks are executed on-demand rather than running continuously:
 CLUSTER_NAME=$(aws ecs list-clusters --query 'clusterArns[?contains(@, `NovaActEcsStack`)] | [0]' --output text | cut -d'/' -f2)
 TASK_DEF_ARN=$(aws ecs list-task-definitions --query 'taskDefinitionArns[?contains(@, `NovaActEcsStack`)] | [0]' --output text)
 
-# Run task
+# Run task with default configuration
 aws ecs run-task \
   --cluster $CLUSTER_NAME \
   --task-definition $TASK_DEF_ARN \
   --launch-type EC2
 
-# Check logs
-aws logs get-log-events \
-  --log-group-name /aws/ecs/NovaActEcsStack \
-  --log-stream-name ecs/AppContainer/TASK-ID
+# Run task with custom prompt and starting page
+aws ecs run-task \
+  --cluster $CLUSTER_NAME \
+  --task-definition $TASK_DEF_ARN \
+  --launch-type EC2 \
+  --overrides '{
+    "containerOverrides": [{
+      "name": "AppContainer",
+      "environment": [
+        {"name": "NOVA_ACT_PROMPT", "value": "Find flights from Boston to Wolf on Feb 22nd"},
+        {"name": "NOVA_ACT_STARTING_PAGE", "value": "https://nova.amazon.com/act/gym/next-dot/search"}
+      ]
+    }]
+  }'
 ```
 
 ## Testing
 
-Full deployment test:
+Run the complete deployment test:
 ```bash
 ./test-ecs-deploy.sh
 ```
 
-This script:
-1. Deploys the stack
-2. Waits for container instances to register
-3. Runs a test task
-4. Monitors task completion and logs
-5. Destroys the stack
+This performs a full deploy → invoke → teardown cycle with test payload.
 
 ## Customization
-
 Modify the stack in `ecs-app.ts`:
 
 ```typescript
