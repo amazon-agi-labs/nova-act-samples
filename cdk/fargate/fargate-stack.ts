@@ -93,24 +93,25 @@ export interface NovaActFargateProps {
   containerImage: ecs.ContainerImage;
   cpu?: number;
   memoryLimitMiB?: number;
-  desiredCount?: number;
   vpc?: NovaActVpc;
   environment?: { [key: string]: string };
   taskRole?: iam.IRole;
   executionRole?: iam.IRole;
+  apiKey: string;
 }
 
 export class NovaActFargate extends Construct {
   public readonly vpc: NovaActVpc;
   public readonly cluster: ecs.Cluster;
-  public readonly service: ecs.FargateService;
+  public readonly taskDefinition: ecs.FargateTaskDefinition;
 
   constructor(scope: Construct, id: string, props: NovaActFargateProps) {
     super(scope, id);
 
     this.vpc = this.getOrCreateVpc(props.vpc);
     this.cluster = this.createCluster();
-    this.service = this.createFargateService(props);
+    this.taskDefinition = this.createTaskDefinition(props);
+    this.addContainer(this.taskDefinition, props);
   }
 
   private getOrCreateVpc(vpc?: NovaActVpc): NovaActVpc {
@@ -124,19 +125,6 @@ export class NovaActFargate extends Construct {
     });
   }
 
-  private createFargateService(props: NovaActFargateProps): ecs.FargateService {
-    const taskDefinition = this.createTaskDefinition(props);
-    this.addContainer(taskDefinition, props);
-
-    return new ecs.FargateService(this, "Service", {
-      cluster: this.cluster,
-      taskDefinition,
-      desiredCount: props.desiredCount || 1,
-      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
-      securityGroups: this.vpc.securityGroup ? [this.vpc.securityGroup] : undefined,
-    });
-  }
-
   private createTaskDefinition(props: NovaActFargateProps): ecs.FargateTaskDefinition {
     return new ecs.FargateTaskDefinition(this, "TaskDefinition", {
       cpu: props.cpu || 2048,
@@ -147,7 +135,7 @@ export class NovaActFargate extends Construct {
   }
 
   private addContainer(taskDefinition: ecs.FargateTaskDefinition, props: NovaActFargateProps): void {
-    const environment = this.createEnvironmentVariables(props.environment);
+    const environment = this.createEnvironmentVariables(props.apiKey, props.environment);
 
     taskDefinition.addContainer("AppContainer", {
       image: props.containerImage,
@@ -165,11 +153,12 @@ export class NovaActFargate extends Construct {
     ]);
   }
 
-  private createEnvironmentVariables(additionalEnv: { [key: string]: string } = {}): { [key: string]: string } {
+  private createEnvironmentVariables(apiKey: string, additionalEnv: { [key: string]: string } = {}): { [key: string]: string } {
     return {
       NOVA_ACT_BROWSER_ARGS: "--disable-gpu --disable-dev-shm-usage --no-sandbox --single-process",
       NOVA_ACT_HEADLESS: "true",
       NOVA_ACT_SKIP_PLAYWRIGHT_INSTALL: "1",
+      NOVA_ACT_API_KEY: apiKey,
       ...additionalEnv,
     };
   }
@@ -183,14 +172,19 @@ export class NovaActFargate extends Construct {
   }
 }
 
+export interface NovaActFargateStackProps extends cdk.StackProps {
+  apiKey: string;
+}
+
 export class NovaActFargateStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props: NovaActFargateStackProps) {
     super(scope, id, props);
 
     new NovaActFargate(this, 'NovaActService', {
       containerImage: ecs.ContainerImage.fromAsset('.', {
         platform: cdk.aws_ecr_assets.Platform.LINUX_AMD64
       }),
+      apiKey: props.apiKey,
     });
   }
 }
