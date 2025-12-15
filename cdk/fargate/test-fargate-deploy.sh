@@ -1,28 +1,33 @@
 #!/bin/bash
 
-# Full test script for standalone Fargate CDK deployment
+# Full test script: deploy + invoke + teardown
 set -e
+
+echo "🚀 Starting full Fargate deployment test..."
 
 STACK_NAME="NovaActFargateStack"
 APP_CMD="npx ts-node fargate-app.ts"
 
+# Clean up any previous deployments
 echo "🧹 Cleaning up previous deployments..."
 rm -rf cdk.out
 
-echo "Starting full Fargate deployment test..."
-
 # Deploy the stack
-echo "Deploying Fargate stack..."
+echo "🏗️ Deploying Fargate stack..."
 npx cdk deploy --app "$APP_CMD" --require-approval never
 
 # Get cluster and task definition info
-echo "Getting cluster and task definition info..."
+echo "🔍 Getting cluster and task definition info..."
 CLUSTER_ARN=$(aws ecs list-clusters --query 'clusterArns[?contains(@, `'$STACK_NAME'`)] | [0]' --output text)
+if [ "$CLUSTER_ARN" == "None" ] || [ -z "$CLUSTER_ARN" ]; then
+    echo "❌ Failed to find cluster for stack $STACK_NAME"
+    exit 1
+fi
 CLUSTER_NAME=$(echo $CLUSTER_ARN | cut -d'/' -f2)
-TASK_DEF_ARN=$(aws ecs list-task-definitions --query 'taskDefinitionArns[?contains(@, `'$STACK_NAME'`)] | [0]' --output text)
 
-if [ "$CLUSTER_ARN" == "None" ] || [ "$TASK_DEF_ARN" == "None" ]; then
-    echo "❌ Failed to get cluster or task definition ARNs"
+TASK_DEF_ARN=$(aws ecs list-task-definitions --query 'taskDefinitionArns[?contains(@, `'$STACK_NAME'`)] | [0]' --output text)
+if [ "$TASK_DEF_ARN" == "None" ] || [ -z "$TASK_DEF_ARN" ]; then
+    echo "❌ Failed to find task definition for stack $STACK_NAME"
     exit 1
 fi
 
@@ -42,7 +47,7 @@ echo "✅ Security Group: $SECURITY_GROUP_ID"
 NETWORK_CONFIG="awsvpcConfiguration={subnets=[$SUBNET_ID],securityGroups=[$SECURITY_GROUP_ID],assignPublicIp=DISABLED}"
 
 # Run a test task with custom environment variables
-echo "▶️  Running test task with custom prompt and starting page..."
+echo "▶️ Running test task with custom prompt and starting page..."
 TASK_ARN=$(aws ecs run-task \
     --cluster $CLUSTER_NAME \
     --task-definition $TASK_DEF_ARN \
@@ -131,8 +136,8 @@ if [ "$LOG_STREAM" != "None" ]; then
 fi
 
 # Teardown
-echo "🗑️  Tearing down stack..."
-npx cdk destroy --app "npx ts-node fargate-app.ts" --force
+echo "🗑️ Tearing down stack..."
+npx cdk destroy --app "$APP_CMD" --force
 
 echo "🎉 Full Fargate deployment test completed successfully!"
 echo "✅ Deploy → Invoke → Teardown cycle validated"
