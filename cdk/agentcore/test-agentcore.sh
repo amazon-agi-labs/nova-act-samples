@@ -1,77 +1,57 @@
 #!/bin/bash
 
-# Comprehensive test script for standalone AgentCore deployment
+# Full test script: deploy + invoke + teardown
 set -e
 
-echo "=== Standalone AgentCore Test Suite ==="
+echo "🚀 Starting standalone AgentCore deployment test..."
 
-# Get real AWS account ID
-REAL_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-export CDK_DEFAULT_ACCOUNT=${CDK_DEFAULT_ACCOUNT:-$REAL_ACCOUNT_ID}
+STACK_NAME="NovaActAgentCoreStack"
+APP_CMD="npx ts-node agentcore-app.ts"
 
-# Validate required environment variables
-if [ -z "$CDK_DEFAULT_ACCOUNT" ]; then
-    echo "ERROR: CDK_DEFAULT_ACCOUNT environment variable must be set"
-    exit 1
-fi
-
-# Set default region if not provided
-export CDK_DEFAULT_REGION=${CDK_DEFAULT_REGION:-us-east-1}
-
-echo "Using Account ID: $CDK_DEFAULT_ACCOUNT"
-echo "Using Region: $CDK_DEFAULT_REGION"
-echo "Using IAM authentication (no API key required)"
-echo "CDK will build and push container automatically"
-
-# Clean up cdk.out directory
-echo "Cleaning up cdk.out directory..."
+# Clean up any previous deployments
+echo "🧹 Cleaning up cdk.out directory..."
 rm -rf cdk.out
-echo "cdk.out directory cleaned"
 
-# Force destroy and redeploy stack
-echo "Force destroying existing stack..."
-npx cdk destroy --force || true
-
-echo "Deploying fresh stack (CDK will build container)..."
-npx cdk deploy --require-approval never
+# Deploy the stack
+echo "🏗️  Deploying AgentCore stack..."
+npx cdk deploy --app "$APP_CMD" --require-approval never
 
 # Wait for runtime to be ready
-echo "Waiting for runtime to be ready..."
+echo "⏳ Waiting for runtime to be ready..."
 sleep 30
 
 # Get runtime ARN using dynamic region
-RUNTIME_ARN=$(aws bedrock-agentcore-control list-agent-runtimes --region $CDK_DEFAULT_REGION --query 'agentRuntimes[?agentRuntimeName==`NovaActAgent`].agentRuntimeArn' --output text)
+REGION=$(aws configure get region || echo "us-east-1")
+RUNTIME_ARN=$(aws bedrock-agentcore-control list-agent-runtimes --region $REGION --query 'agentRuntimes[?agentRuntimeName==`NovaActAgent`].agentRuntimeArn' --output text)
 echo "Runtime ARN: $RUNTIME_ARN"
 
 # Verify container image
-CONTAINER_URI=$(aws bedrock-agentcore-control get-agent-runtime --agent-runtime-id $(echo $RUNTIME_ARN | cut -d'/' -f2) --region $CDK_DEFAULT_REGION --query 'agentRuntimeArtifact.containerConfiguration.containerUri' --output text)
+CONTAINER_URI=$(aws bedrock-agentcore-control get-agent-runtime --agent-runtime-id $(echo $RUNTIME_ARN | cut -d'/' -f2) --region $REGION --query 'agentRuntimeArtifact.containerConfiguration.containerUri' --output text)
 echo "Container URI: $CONTAINER_URI"
 
-# Create test payload
-cat > /tmp/agentcore_test_payload.json << EOF
-{
-  "prompt": "Navigate to https://example.com and tell me what you see",
-  "starting_page": "https://example.com"
-}
-EOF
+# Create test payload and encode as base64
+PAYLOAD_JSON='{"prompt": "Find flights from Boston to Wolf on Feb 22nd", "starting_page": "https://nova.amazon.com/act/gym/next-dot/search"}'
+PAYLOAD_BASE64=$(echo -n "$PAYLOAD_JSON" | base64)
 
-# Test runtime invocation
-echo "Testing runtime invocation..."
+# Test runtime invocation with extended timeout
+echo "▶️ Testing runtime invocation..."
 aws bedrock-agentcore invoke-agent-runtime \
   --agent-runtime-arn "$RUNTIME_ARN" \
-  --payload file:///tmp/agentcore_test_payload.json \
+  --payload "$PAYLOAD_BASE64" \
   --content-type "application/json" \
   --accept "application/json" \
+  --cli-read-timeout 300 \
   /tmp/agentcore_response.json
 
-echo "Response:"
+echo "📋 Response:"
 cat /tmp/agentcore_response.json
 
 # Clean up test files
-rm -f /tmp/agentcore_test_payload.json /tmp/agentcore_response.json
+rm -f /tmp/agentcore_response.json
 
 # Teardown - destroy the stack
-echo "Tearing down stack..."
-npx cdk destroy --force
+echo ""
+echo "🗑️ Tearing down stack..."
+npx cdk destroy --app "$APP_CMD" --force
 
-echo "=== Standalone AgentCore Test Complete ==="
+echo "🎉 Standalone AgentCore deployment test completed successfully!"

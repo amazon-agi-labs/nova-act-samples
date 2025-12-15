@@ -27,6 +27,11 @@ logger = logging.getLogger(__name__)
 # Initialize the app
 app = BedrockAgentCoreApp()
 
+@app.route("/ping")
+def ping() -> dict[str, str]:
+    return {"status": "healthy"}
+
+
 @app.entrypoint
 def handler(payload):
     """
@@ -41,11 +46,18 @@ def handler(payload):
     logger.info(f"Handler started - Payload received: {payload}")
     
     try:
-        # Extract parameters from payload
-        prompt = payload.get("prompt", "Navigate to example.com and find the heading text") if isinstance(payload, dict) else "Navigate to example.com and find the heading text"
-        starting_page = payload.get("starting_page", "https://example.com") if isinstance(payload, dict) else "https://example.com"
+        # Get API key from environment
+        api_key = os.environ.get('NOVA_ACT_API_KEY')
+        if not api_key:
+            raise ValueError("NOVA_ACT_API_KEY environment variable is required")
         
-        logger.info(f"Starting Nova Act with AgentCore browser session...")
+        # Extract parameters from payload
+        default_prompt = "Find flights from Boston to Wolf on Feb 22nd"
+        prompt = payload.get("prompt", default_prompt) if isinstance(payload, dict) else default_prompt
+        default_starting_page = "https://nova.amazon.com/act/gym/next-dot/search"
+        starting_page = payload.get("starting_page", default_starting_page) if isinstance(payload, dict) else default_starting_page
+        
+        logger.info("Starting Nova Act with AgentCore browser session...")
         logger.info(f"Prompt: {prompt}")
         logger.info(f"Starting page: {starting_page}")
         
@@ -60,8 +72,9 @@ def handler(payload):
             logger.info(f"ws_url is {ws_url}")
             logger.info(f"headers are {headers}")
             
-            # Execute Nova Act workflow using IAM authentication
+            # Execute Nova Act workflow with API key
             with NovaAct(
+                nova_act_api_key=api_key,
                 starting_page=starting_page,
                 headless=True,
                 record_video=False,

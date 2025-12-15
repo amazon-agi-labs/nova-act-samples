@@ -9,17 +9,18 @@ interface NovaActEcsStackProps extends cdk.StackProps {
   instanceType?: ec2.InstanceType;
   desiredCapacity?: number;
   containerImage?: ecs.ContainerImage;
+  apiKey: string;
 }
 
 export class NovaActEcsStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props: NovaActEcsStackProps = {}) {
+  constructor(scope: Construct, id: string, props: NovaActEcsStackProps) {
     super(scope, id, props);
 
     const vpc = this.createVpc();
     const cluster = this.createCluster(vpc, props.instanceType, props.desiredCapacity);
     const taskDefinition = this.createTaskDefinition();
     
-    this.configureContainer(taskDefinition, props.containerImage);
+    this.configureContainer(taskDefinition, props.containerImage, props.apiKey);
   }
 
   private createVpc(): ec2.Vpc {
@@ -122,9 +123,10 @@ export class NovaActEcsStack extends cdk.Stack {
 
   private configureContainer(
     taskDefinition: ecs.Ec2TaskDefinition,
-    containerImage?: ecs.ContainerImage
+    containerImage: ecs.ContainerImage | undefined,
+    apiKey: string
   ): void {
-    const environment = this.createEnvironmentVariables();
+    const environment = this.createEnvironmentVariables(apiKey);
 
     const image = containerImage || ecs.ContainerImage.fromAsset('.', {
       platform: cdk.aws_ecr_assets.Platform.LINUX_AMD64,
@@ -141,12 +143,12 @@ export class NovaActEcsStack extends cdk.Stack {
     });
   }
 
-  private createEnvironmentVariables(): { [key: string]: string } {
+  private createEnvironmentVariables(apiKey: string): { [key: string]: string } {
     return {
       NOVA_ACT_BROWSER_ARGS: '--disable-gpu --disable-dev-shm-usage --no-sandbox',
       NOVA_ACT_HEADLESS: 'true',
       NOVA_ACT_SKIP_PLAYWRIGHT_INSTALL: '1',
+      NOVA_ACT_API_KEY: apiKey,
     };
   }
-
 }

@@ -1,0 +1,19 @@
+{
+  "name": "nova-act-cdk-examples",
+  "version": "1.0.0",
+  "description": "AWS CDK example code for deploying Nova Act on AWS",
+  "author": "Amazon Nova Act",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "aws-cdk-lib": "^2.100.0",
+    "constructs": "^10.0.0",
+    "cdk-nag": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "ts-node": "^10.0.0",
+    "aws-cdk": "^2.100.0"
+  }
+}

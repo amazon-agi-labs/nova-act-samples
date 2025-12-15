@@ -1,48 +1,23 @@
 #!/bin/bash
 
-# Full ECS deployment test: Deploy → Invoke Task → Teardown
-# This script validates the complete ECS task execution workflow
-
+# Full test script: deploy + invoke + teardown
 set -e
-
-STACK_NAME="NovaActEcsStack"
-CLUSTER_NAME="${STACK_NAME}-Cluster"
 
 echo "🚀 Starting full ECS deployment test..."
 
-# Check prerequisites
-if ! command -v cdk &> /dev/null; then
-    echo "❌ CDK CLI not found. Please install with: npm install -g aws-cdk"
-    exit 1
-fi
-
-if ! command -v aws &> /dev/null; then
-    echo "❌ AWS CLI not found. Please install AWS CLI"
-    exit 1
-fi
-
-# Install dependencies if needed
-if [ ! -d "node_modules" ]; then
-    echo "📦 Installing dependencies..."
-    npm install aws-cdk-lib constructs
-fi
+STACK_NAME="NovaActEcsStack"
+APP_CMD="npx ts-node ecs-app.ts"
 
 # Clean up any previous deployments
 echo "🧹 Cleaning up previous deployments..."
 rm -rf cdk.out
 
-# Bootstrap CDK if needed
-echo "🔧 Bootstrapping CDK..."
-cdk bootstrap --app "npx ts-node ecs-app.ts" || true
-
 # Deploy the stack
 echo "🏗️  Deploying ECS stack..."
-cdk deploy --app "npx ts-node ecs-app.ts" --require-approval never
+npx cdk deploy --app "$APP_CMD" --require-approval never
 
-# Get cluster and task definition ARNs from AWS directly
+# Get cluster and task definition info
 echo "🔍 Getting cluster and task definition info..."
-
-# Get the actual cluster ARN (CDK generates unique names)
 CLUSTER_ARN=$(aws ecs list-clusters --query 'clusterArns[?contains(@, `'$STACK_NAME'`)] | [0]' --output text)
 if [ "$CLUSTER_ARN" == "None" ] || [ -z "$CLUSTER_ARN" ]; then
     echo "❌ Failed to find cluster for stack $STACK_NAME"
@@ -50,15 +25,9 @@ if [ "$CLUSTER_ARN" == "None" ] || [ -z "$CLUSTER_ARN" ]; then
 fi
 CLUSTER_NAME=$(echo $CLUSTER_ARN | cut -d'/' -f2)
 
-# Get the task definition ARN (CDK generates unique names)
 TASK_DEF_ARN=$(aws ecs list-task-definitions --query 'taskDefinitionArns[?contains(@, `'$STACK_NAME'`)] | [0]' --output text)
 if [ "$TASK_DEF_ARN" == "None" ] || [ -z "$TASK_DEF_ARN" ]; then
     echo "❌ Failed to find task definition for stack $STACK_NAME"
-    exit 1
-fi
-
-if [ "$CLUSTER_ARN" == "None" ] || [ "$TASK_DEF_ARN" == "None" ]; then
-    echo "❌ Failed to get cluster or task definition ARNs"
     exit 1
 fi
 
@@ -152,7 +121,10 @@ fi
 
 # Show task logs
 echo "📋 Task logs:"
-LOG_GROUP="/aws/ecs/$STACK_NAME"
+LOG_GROUP=$(aws ecs describe-task-definition \
+    --task-definition $TASK_DEF_ARN \
+    --query 'taskDefinition.containerDefinitions[0].logConfiguration.options."awslogs-group"' \
+    --output text)
 LOG_STREAM=$(aws logs describe-log-streams \
     --log-group-name $LOG_GROUP \
     --order-by LastEventTime \
@@ -171,7 +143,7 @@ fi
 
 # Teardown
 echo "🗑️  Tearing down stack..."
-cdk destroy --app "npx ts-node ecs-app.ts" --force
+npx cdk destroy --app "$APP_CMD" --force
 
 echo "🎉 Full ECS deployment test completed successfully!"
 echo "✅ Deploy → Invoke → Teardown cycle validated"

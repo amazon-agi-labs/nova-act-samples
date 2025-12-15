@@ -3,46 +3,42 @@
 # Full test script: deploy + invoke + teardown
 set -e
 
-echo "Starting full Lambda deployment test..."
+echo "🚀 Starting full Lambda deployment test..."
 
-# Get actual AWS account and region
-ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
-REGION=$(aws configure get region || echo "us-east-1")
+STACK_NAME="NovaActLambdaStack"
+APP_CMD="npx ts-node lambda-app.ts"
 
-export CDK_DEFAULT_ACCOUNT=$ACCOUNT
-export CDK_DEFAULT_REGION=$REGION
-
-echo "Using AWS Account: $ACCOUNT, Region: $REGION"
-
-# Clean up
-echo "Cleaning CDK output directory..."
+# Clean up any previous deployments
+echo "🧹 Cleaning CDK output directory..."
 rm -rf cdk.out
 
-# Deploy
-echo "Deploying Lambda stack..."
-npx cdk deploy --app "npx ts-node lambda-app.ts" --require-approval never
+# Deploy the stack
+echo "🏗️ Deploying Lambda stack..."
+npx cdk deploy --app "$APP_CMD" --require-approval never
 
 # Get function name
-FUNCTION_NAME=$(aws lambda list-functions --query "Functions[?starts_with(FunctionName, 'NovaActLambdaStack-NovaActWithIAMFunction')].FunctionName" --output text)
+FUNCTION_NAME=$(aws lambda list-functions --query "Functions[?starts_with(FunctionName, '$STACK_NAME-NovaActLambdaFunction')].FunctionName" --output text)
 echo "Found Lambda function: $FUNCTION_NAME"
 
-# Invoke function
-echo "Invoking Lambda function..."
+# Invoke function with extended timeout
+echo "▶️ Invoking Lambda function..."
 aws lambda invoke \
   --function-name "$FUNCTION_NAME" \
-  --payload '{"prompts":["Go to google.com"],"starting_page":"https://google.com"}' \
+  --cli-binary-format raw-in-base64-out \
+  --cli-read-timeout 300 \
+  --payload '{"prompt":"Find flights from Boston to Wolf on Feb 22nd","starting_page":"https://nova.amazon.com/act/gym/next-dot/search"}' \
   response.json
 
-echo "Lambda response:"
+echo "📋 Lambda response:"
 cat response.json
 echo
 
-# Teardown
-echo "Destroying Lambda stack..."
-npx cdk destroy --app "npx ts-node lambda-app.ts" --force
-
 # Cleanup
 rm -f response.json
-rm -rf cdk.out
 
-echo "Full Lambda deployment test completed successfully!"
+# Teardown
+echo ""
+echo "🗑️ Destroying Lambda stack..."
+npx cdk destroy --app "$APP_CMD" --force
+
+echo "🎉 Full Lambda deployment test completed successfully!"
