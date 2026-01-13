@@ -1,0 +1,4 @@
+nova-act
+bedrock-agentcore
+fire
+boto3
