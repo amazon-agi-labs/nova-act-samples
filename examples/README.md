@@ -7,6 +7,8 @@ Simple, focused scripts that demonstrate Nova Act's core capabilities. Each exam
 ```
 ├── *.py                                    # Core examples
 ├── utils.py                                # Shared utilities for all examples
+├── agentcore/                              # AgentCore integration examples
+├── browser_dialogs/                        # Browser dialog handling examples
 ├── human_in_the_loop/                      # Human in the loop examples
 ├── nova_agents/                            # Nova Agent examples
 └── tool_use/                               # Tool use examples
@@ -15,7 +17,7 @@ Simple, focused scripts that demonstrate Nova Act's core capabilities. Each exam
 ## Prerequisites
 
 - Operating System: MacOS Sierra+, Ubuntu 22.04+, WSL2 or Windows 10+
-- Python: 3.10 or above
+- Python: 3.11 or above
 
 > See the [Nova Act SDK repository](https://github.com/aws/nova-act?tab=readme-ov-file#pre-requisites) for a complete up-to-date list of prerequisites
 
@@ -78,6 +80,18 @@ python -m examples.hello_world
 ### Core Examples
 
 The individual Python files (`*.py`) in this directory demonstrate specific Nova Act capabilities. Each example includes detailed usage instructions and parameter descriptions in the docstring comment at the top of the file.
+
+### Amazon Bedrock AgentCore
+
+The `agentcore/` directory demonstrates how to use Nova Act with AgentCore capabilities.
+
+[Get Started with AgentCore →](agentcore/README.md)
+
+### Browser Dialogs
+
+The `browser_dialogs/` directory shows how to handle browser native dialogs (prompt, confirm, alert) using Playwright's dialog event handlers.
+
+[Get Started with Browser Dialogs →](browser_dialogs/README.md)
 
 ### Human in the Loop (HITL)
 

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Adventure Game</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #333;
+      }
+      
+      .game-container {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        padding: 40px;
+        max-width: 600px;
+        width: 90%;
+        text-align: center;
+      }
+      
+      h1 {
+        color: #4a5568;
+        margin-bottom: 30px;
+        font-size: 2.5em;
+        font-weight: 300;
+      }
+      
+      .game-info {
+        background: #f7fafc;
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 30px;
+        border-left: 4px solid #667eea;
+      }
+      
+      .info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        font-size: 1.1em;
+      }
+      
+      .info-row:last-child {
+        margin-bottom: 0;
+      }
+      
+      .info-label {
+        font-weight: 600;
+        color: #4a5568;
+      }
+      
+      .info-value {
+        color: #667eea;
+        font-weight: 500;
+      }
+      
+      .button-group {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+        justify-content: center;
+      }
+      
+      .setup-button {
+        background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        font-size: 1em;
+        font-weight: 600;
+        border-radius: 50px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 8px 16px rgba(72, 187, 120, 0.3);
+      }
+      
+      .setup-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 24px rgba(72, 187, 120, 0.4);
+      }
+      
+      .start-button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 15px 40px;
+        font-size: 1.2em;
+        font-weight: 600;
+        border-radius: 50px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+      }
+      
+      .start-button:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
+      }
+      
+      .start-button:active:not(:disabled) {
+        transform: translateY(0);
+      }
+      
+      .start-button:disabled {
+        background: #cbd5e0;
+        cursor: not-allowed;
+        box-shadow: none;
+      }
+      
+      .status-ready { color: #48bb78; }
+      .status-progress { color: #ed8936; }
+      .status-complete { color: #667eea; }
+      .status-cancelled { color: #f56565; }
+    </style>
+  </head>
+  <body>
+    <div class="game-container">
+      <h1>🎮 Adventure Game</h1>
+      
+      <div class="game-info">
+        <div class="info-row">
+          <span class="info-label">Player:</span>
+          <span class="info-value" id="playerName">Not set</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Difficulty:</span>
+          <span class="info-value" id="difficulty">Not selected</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Status:</span>
+          <span class="info-value status-ready" id="gameStatus">Ready to start</span>
+        </div>
+      </div>
+      
+      <div class="button-group">
+        <button class="setup-button" onclick="enterName()">Enter Name</button>
+        <button class="setup-button" onclick="setDifficulty()">Set Difficulty</button>
+      </div>
+      
+      <button class="start-button" id="startButton" onclick="startGame()" disabled>Start New Game</button>
+    </div>
+
+    <script>
+      var playerNameValue = null;
+      var difficultyValue = null;
+      
+      function enterName() {
+        var name = prompt('Enter your player name:');
+        if (name) {
+          playerNameValue = name;
+          document.getElementById('playerName').textContent = name;
+          updateStatus('Player name set', 'status-progress');
+          checkReadyToStart();
+        }
+      }
+      
+      function setDifficulty() {
+        var hardMode = confirm('Do you want to play on HARD mode?\n\nOK = Hard Mode\nCancel = Easy Mode');
+        difficultyValue = hardMode ? 'Hard' : 'Easy';
+        document.getElementById('difficulty').textContent = difficultyValue;
+        updateStatus('Difficulty selected', 'status-progress');
+        checkReadyToStart();
+      }
+      
+      function checkReadyToStart() {
+        var startButton = document.getElementById('startButton');
+        if (playerNameValue && difficultyValue) {
+          startButton.disabled = false;
+          updateStatus('Ready to start', 'status-ready');
+        }
+      }
+      
+      function startGame() {
+        updateStatus('Starting game...', 'status-progress');
+        setTimeout(function() {
+          alert('Welcome ' + playerNameValue + '!\n\nGame starting in ' + difficultyValue + ' mode.\nGood luck!');
+          updateStatus('Game started! Playing as ' + playerNameValue + ' on ' + difficultyValue + ' mode.', 'status-complete');
+        }, 500);
+      }
+      
+      function updateStatus(message, className) {
+        var statusElement = document.getElementById('gameStatus');
+        statusElement.textContent = message;
+        statusElement.className = 'info-value ' + className;
+      }
+    </script>
+  </body>
+</html>
