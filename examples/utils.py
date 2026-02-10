@@ -6,8 +6,6 @@ import logging
 import os
 from typing import get_args
 
-from nova_act.types.workflow import ModelId
-
 
 def get_logger(name: str):
   """
@@ -27,7 +25,7 @@ def get_workflow_kwargs():
   workflow_definition_name = os.getenv("NOVA_ACT_WORKFLOW_DEFINITION_NAME", None)
 
   return {
-    "model_id": get_args(ModelId)[0],
+    "model_id": "nova-act-latest",
     "nova_act_api_key": api_key,
     "workflow_definition_name": workflow_definition_name
   }
