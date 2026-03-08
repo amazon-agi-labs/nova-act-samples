@@ -1,4 +1,4 @@
-# Amazon Nova Act Human in the Loop (HITL)
+# Amazon Nova Act Human in the Loop (HITL) Examples
 
 Examples demonstrating human approval workflows and interactive automation patterns with Nova Act. These examples show how to pause automation for human intervention when needed.
 
@@ -12,34 +12,21 @@ Examples demonstrating human approval workflows and interactive automation patte
 
 Complete the [Getting Started](../README.md#getting-started) section in the main examples directory before running these examples.
 
-## About HITL
+## Implementation Details
 
-### HITL Patterns
+Nova Act supports two HITL patterns:
 
-Nova Act supports the following HITL patterns:
-
-#### 1. Human approval
-
-Request human approval before completing automated actions, useful for:
-- Confirming purchases, transactions, or expense reports
-- Validating data before submission
-
-#### 2. UI takeover
-
-Pause automation to let humans handle complex interactions in the browser, useful for:
-- CAPTCHA resolution
-- Authentication flows
-
-### HITL Implementation Details
+1. Human approval — request human approval before completing automated actions, useful for confirming purchases, transactions, or validating data before submission.
+2. UI takeover — pause automation to let humans handle complex interactions in the browser, useful for CAPTCHA resolution or authentication flows.
 
 HITL workflows require implementing the `HumanInputCallbacksBase` class with two methods:
 
-- `approve(message: str) -> ApprovalResponse` - Handle approval requests
-- `ui_takeover(message: str) -> UiTakeoverResponse` - Handle UI takeover requests
+- `approve(message: str) -> ApprovalResponse` — handle approval requests
+- `ui_takeover(message: str) -> UiTakeoverResponse` — handle UI takeover requests
 
 The Nova Act SDK automatically calls these methods when human intervention is needed during workflow execution.
 
-## Usage Instructions
+## Usage
 
 ### Basic Examples
 

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Color Input Actuation</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            margin: 0;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            align-items: center;
+        }
+        label {
+            font-size: 18px;
+        }
+        input[type="color"] {
+            width: 60px;
+            height: 40px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <label for="bgColor">Background Color</label>
+        <input type="color" id="bgColor" value="#ffffff">
+
+        <label for="textColor">Text Color</label>
+        <input type="color" id="textColor" value="#000000">
+    </div>
+</body>
+</html>

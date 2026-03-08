@@ -3,15 +3,18 @@
 Shows how to use Nova Act to extract data from a website.
 
 Usage:
+# Default
+python -m examples.data_extraction
+# Specify a planet
 python -m examples.data_extraction --planet <planet name from https://nova.amazon.com/act/gym/next-dot/>
 """
 
-import fire  # type: ignore
+import fire
+from nova_act import NovaAct, workflow
 from pydantic import BaseModel
 
-from examples.utils import get_logger, get_workflow_kwargs
-
-from nova_act import NovaAct, workflow
+from examples.nova_act_client import NovaActClient
+from examples.utils import get_logger
 
 LOGGER = get_logger(__name__)
 
@@ -26,7 +29,7 @@ class PlanetData(BaseModel):
     average_temperature: Measurement
 
 
-@workflow(**get_workflow_kwargs())
+@workflow(**NovaActClient.get_workflow_kwargs())
 def main(planet: str = "Proxima Centauri b") -> None:
     with NovaAct(starting_page="https://nova.amazon.com/act/gym/next-dot") as nova:
         # Extract the planet data

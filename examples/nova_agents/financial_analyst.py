@@ -1,5 +1,4 @@
-"""
-Financial Analyst using Nova Act and Nova API.
+"""Financial Analyst using Nova Act and Nova API.
 
 A Strands Agent that uses Nova Act to extract stock symbols from websites
 and Nova model to analyze market trends and provide insights into ticker performance.
@@ -9,13 +8,14 @@ python -m examples.nova_agents.financial_analyst --website_url <url>
 """
 
 import os
+
 import fire
 from nova_act import NovaAct, workflow
 from pydantic import BaseModel
 from strands import Agent, tool
 from strands_amazon_nova import NovaAPIModel
 
-from examples.utils import get_workflow_kwargs
+from examples.nova_act_client import NovaActClient
 
 # Get and set Nova API key
 nova_api_key = os.environ.get("NOVA_API_KEY")
@@ -47,7 +47,7 @@ class StockList(BaseModel):
 
 # Define the Tool for strands to invoke to use Nova Act for research
 @tool
-@workflow(**get_workflow_kwargs())
+@workflow(**NovaActClient.get_workflow_kwargs())
 def extract_stock_symbols(website_url: str, prompt: str) -> StockList:
     """Returns a list of stock symbols from a website using Nova Act."""
     with NovaAct(starting_page=website_url) as nova:
@@ -80,7 +80,7 @@ agent = Agent(
 )
 
 
-def main(website_url: str, nova_act_prompt: str = "Find the top gainers"):
+def main(website_url: str, nova_act_prompt: str = "Find the top gainers") -> None:
     """
     Run the financial analyst agent.
 

@@ -6,8 +6,6 @@ Usage:
 python -m examples.human_in_the_loop.basic.ui_takeover
 """
 
-from examples.utils import get_logger, get_workflow_kwargs
-
 from nova_act import NovaAct, workflow
 from nova_act.tools.human.interface.human_input_callback import (
     ApprovalResponse,
@@ -16,6 +14,9 @@ from nova_act.tools.human.interface.human_input_callback import (
 )
 from nova_act.types.act_errors import NoHumanInputToolAvailable
 
+from examples.nova_act_client import NovaActClient
+from examples.utils import get_logger
+
 LOGGER = get_logger(__name__)
 
 
@@ -23,9 +24,6 @@ class UiTakeoverCallbacks(HumanInputCallbacksBase):
     """
     Implements ui_takeover() callback which simply pauses execution until the enter key is pressed
     """
-
-    def __init__(self) -> None:
-        super().__init__()
 
     def approve(self, message: str) -> ApprovalResponse:
         """See approval.py for a Approval example"""
@@ -41,7 +39,7 @@ class UiTakeoverCallbacks(HumanInputCallbacksBase):
         return UiTakeoverResponse.COMPLETE
 
 
-@workflow(**get_workflow_kwargs())
+@workflow(**NovaActClient.get_workflow_kwargs())
 def main():
     with NovaAct(
         starting_page="https://www.google.com/recaptcha/api2/demo",
@@ -49,7 +47,7 @@ def main():
     ) as nova:
         result = nova.act_get("Submit the form and return the result text")
         text = result.parsed_response
-        LOGGER.info(f"✓ Form submited with response: {text}")
+        LOGGER.info(f"✓ Form submitted with response: {text}")
 
 
 if __name__ == "__main__":

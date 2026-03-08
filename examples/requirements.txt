@@ -1,0 +1,7 @@
+# Core SDK
+nova-act~=3.0
+
+# Common dependencies used across most examples
+fire
+boto3
+boto3-stubs[devicefarm,nova-act,s3,sts]

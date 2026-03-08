@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>File Input Actuation</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            margin: 0;
+        }
+        form {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+            width: 300px;
+        }
+        label {
+            font-size: 18px;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .status {
+            font-size: 18px;
+            color: #555;
+            min-height: 24px;
+        }
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ccc;
+            border-top-color: #333;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <form id="uploadForm">
+        <label for="fileUpload">Choose a file</label>
+        <input type="file" id="fileUpload" name="file">
+        <div id="selected" class="status"></div>
+        <button type="submit">Upload</button>
+        <div id="status" class="status"></div>
+    </form>
+
+    <script>
+        const form = document.getElementById('uploadForm');
+        const fileUpload = document.getElementById('fileUpload');
+        const selected = document.getElementById('selected');
+        const status = document.getElementById('status');
+
+        fileUpload.addEventListener('change', () => {
+            if (fileUpload.files.length > 0) {
+                selected.textContent = `Selected: ${fileUpload.files[0].name}`;
+            }
+        });
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (fileUpload.files.length === 0) {
+                status.textContent = 'No file selected';
+                return;
+            }
+            status.innerHTML = '<span class="spinner"></span> Uploading...';
+            setTimeout(() => {
+                status.textContent = `Uploaded: ${fileUpload.files[0].name}`;
+            }, 5000);
+        });
+    </script>
+</body>
+</html>

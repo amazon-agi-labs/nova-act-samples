@@ -1,5 +1,4 @@
-"""
-Book Research Agent using Strands Agents with the Nova API and Nova Act.
+"""Book Research Agent using Strands Agents with the Nova API and Nova Act.
 
 A Strands Agent that uses Nova Act to extract top books from websites
 and Nova model to analyze why they're popular and recommend similar books.
@@ -9,13 +8,14 @@ python -m examples.nova_agents.book_research_agent --website_url <url>
 """
 
 import os
+
 import fire
 from nova_act import NovaAct, workflow
 from pydantic import BaseModel
 from strands import Agent, tool
 from strands_amazon_nova import NovaAPIModel
 
-from examples.utils import get_workflow_kwargs
+from examples.nova_act_client import NovaActClient
 
 # Get and set Nova API key
 nova_api_key = os.environ.get("NOVA_API_KEY")
@@ -48,7 +48,7 @@ class BookList(BaseModel):
 
 # Define the Tool for strands to invoke to use Nova Act for research
 @tool
-@workflow(**get_workflow_kwargs())
+@workflow(**NovaActClient.get_workflow_kwargs())
 def extract_top_books(website_url: str, prompt: str) -> BookList:
     """Extract top books from a website using Nova Act."""
     with NovaAct(starting_page=website_url) as nova:
@@ -81,13 +81,15 @@ agent = Agent(
 )
 
 
-def main(website_url: str, nova_act_prompt: str = "Find the top 5 fiction books"):
+def main(
+    website_url: str, nova_act_prompt: str = "Find the top 5 fiction books"
+) -> None:
     """
     Run the book research agent.
 
     Args:
         website_url: The website URL to extract books from (required)
-        prompt: Complete Nova Act prompt for book extraction
+        nova_act_prompt: Complete Nova Act prompt for book extraction
     """
     # Extract books and analyze them
     response = agent(

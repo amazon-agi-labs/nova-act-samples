@@ -1,5 +1,4 @@
-"""
-Travel Agent using Strands Agents with the Nova API and Nova Act.
+"""Travel Agent using Strands Agents with the Nova API and Nova Act.
 
 Demonstrates how to use Nova Act as a tool within a Strands Agent configured with the Nova API
 to extract destinations from the web and generate travel recommendations using Nova.
@@ -16,8 +15,7 @@ from pydantic import BaseModel
 from strands import Agent, tool
 from strands_amazon_nova import NovaAPIModel
 
-from examples.utils import get_workflow_kwargs
-
+from examples.nova_act_client import NovaActClient
 
 # Get and set Nova API key
 nova_api_key = os.environ.get("NOVA_API_KEY")
@@ -49,7 +47,7 @@ class DestinationList(BaseModel):
 
 # Define the Tool for strands to invoke to use Nova Act for research
 @tool
-@workflow(**get_workflow_kwargs())
+@workflow(**NovaActClient.get_workflow_kwargs())
 def get_travel_destinations(num_destinations: int):
     """Returns a list of travel destinations from the web.
 
@@ -90,10 +88,8 @@ agent = Agent(
 )
 
 
-def main(num_destinations: int = 5):
-    print(
-        f"🔍 Planning your trip with {num_destinations} destinations..."
-    )
+def main(num_destinations: int = 5) -> None:
+    print(f"🔍 Planning your trip with {num_destinations} destinations...")
 
     response = agent(
         f"Get {num_destinations} sci-fi exoplanet travel destinations and plan a hilarious family trip that visits each of them."

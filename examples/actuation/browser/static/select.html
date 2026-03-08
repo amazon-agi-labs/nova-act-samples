@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Select Actuation</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            margin: 0;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            align-items: center;
+        }
+        label {
+            font-size: 18px;
+        }
+        select {
+            padding: 10px;
+            font-size: 16px;
+        }
+        .value {
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div>
+            <label for="countrySelect">Country</label><br>
+            <select id="countrySelect">
+                <option value="">-- Select --</option>
+                <option value="us">United States</option>
+                <option value="ca">Canada</option>
+                <option value="uk">United Kingdom</option>
+                <option value="de">Germany</option>
+                <option value="jp">Japan</option>
+            </select>
+        </div>
+        <div id="countryValue" class="value">Country: none</div>
+
+        <div>
+            <label for="sizeSelect">Size</label><br>
+            <select id="sizeSelect">
+                <option value="">-- Select --</option>
+                <option value="xs">Extra Small</option>
+                <option value="s">Small</option>
+                <option value="m">Medium</option>
+                <option value="l">Large</option>
+                <option value="xl">Extra Large</option>
+            </select>
+        </div>
+        <div id="sizeValue" class="value">Size: none</div>
+    </div>
+
+    <script>
+        const countrySelect = document.getElementById('countrySelect');
+        const countryValue = document.getElementById('countryValue');
+        const sizeSelect = document.getElementById('sizeSelect');
+        const sizeValue = document.getElementById('sizeValue');
+
+        countrySelect.addEventListener('change', () => {
+            const text = countrySelect.options[countrySelect.selectedIndex].text;
+            countryValue.textContent = `Country: ${text}`;
+        });
+
+        sizeSelect.addEventListener('change', () => {
+            const text = sizeSelect.options[sizeSelect.selectedIndex].text;
+            sizeValue.textContent = `Size: ${text}`;
+        });
+    </script>
+</body>
+</html>

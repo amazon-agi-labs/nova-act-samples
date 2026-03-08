@@ -1,4 +1,2 @@
-nova-act
-bedrock-agentcore
-fire
-boto3
+-r ../requirements.txt
+bedrock-agentcore~=1.2.0

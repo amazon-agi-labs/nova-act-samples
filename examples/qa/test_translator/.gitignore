@@ -1,0 +1,7 @@
+build/
+.venv/
+features_translated/
+.env
+!.env.example
+.pytest_cache/
+reports/

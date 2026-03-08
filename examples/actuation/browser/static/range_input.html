@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Range Input Actuation</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            margin: 0;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            align-items: center;
+        }
+        label {
+            font-size: 18px;
+        }
+        .value {
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div>
+            <label for="volumeSlider">Volume</label><br>
+            <input type="range" id="volumeSlider" min="0" max="100" value="50" style="width: 200px;">
+        </div>
+        <div id="volumeValue" class="value">Volume: 50</div>
+
+        <div>
+            <label for="brightnessSlider">Brightness</label><br>
+            <input type="range" id="brightnessSlider" min="0" max="100" value="0" style="width: 200px;">
+        </div>
+        <div id="brightnessValue" class="value">Brightness: 0</div>
+    </div>
+
+    <script>
+        const volumeSlider = document.getElementById('volumeSlider');
+        const volumeValue = document.getElementById('volumeValue');
+        const brightnessSlider = document.getElementById('brightnessSlider');
+        const brightnessValue = document.getElementById('brightnessValue');
+
+        volumeSlider.addEventListener('input', () => {
+            volumeValue.textContent = `Volume: ${volumeSlider.value}`;
+        });
+
+        brightnessSlider.addEventListener('input', () => {
+            brightnessValue.textContent = `Brightness: ${brightnessSlider.value}`;
+        });
+    </script>
+</body>
+</html>

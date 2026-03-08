@@ -7,7 +7,7 @@ The apartment search occurs synchronously in headed mode and the commute calcula
 asynchronously in headless mode to show how to use Nova Act concurrently in a Thread Pool.
 
 Usage:
-python -m examples.search_aparments_calculate_commute \
+python -m examples.search_apartments_calculate_commute \
     --apartment_url <apartment search website> \
     --maps_url <maps service website> \
     [--transport_mode <walking|biking>] \
@@ -20,13 +20,13 @@ python -m examples.search_aparments_calculate_commute \
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Literal, get_args
 
-import fire  # type: ignore
+import fire
 import pandas as pd
+from nova_act import NovaAct, workflow
 from pydantic import BaseModel
 
-from examples.utils import get_logger, get_workflow_kwargs
-
-from nova_act import NovaAct, workflow
+from examples.nova_act_client import NovaActClient
+from examples.utils import get_logger
 
 LOGGER = get_logger(__name__)
 
@@ -51,6 +51,7 @@ class TransitCommute(BaseModel):
     commute_distance_miles: float
 
 
+@workflow(**NovaActClient.get_workflow_kwargs())
 def add_commute_distance(
     apartment: Apartment,
     transit_city: str,
@@ -72,7 +73,7 @@ def add_commute_distance(
         return time_distance
 
 
-@workflow(**get_workflow_kwargs())
+@workflow(**NovaActClient.get_workflow_kwargs())
 def main(
     apartment_url: str,
     maps_url: str,
@@ -83,18 +84,7 @@ def main(
     headless: bool = False,
     min_apartments_to_find: int = 5,
 ) -> None:
-    """Find apartments and calculate distance to transit station.
-
-    Usage:
-    python -m nova_act.samples.apartments_transit_walking \
-        --apartment_url <apartment search website> \
-        --maps_url <maps service website> \
-        [--transit_city <city_with_a_transit_station>] \
-        [--transport_mode <walking|biking>] \
-        [--bedrooms <number_of_bedrooms>] \
-        [--baths <number_of_baths>] \
-        [--headless]
-    """
+    """Find apartments and calculate distance to transit station."""
     if transport_mode not in TRANSPORT_MODES:
         raise ValueError(f"transport_mode must be one of {TRANSPORT_MODES}")
 
@@ -104,7 +94,6 @@ def main(
         starting_page=apartment_url,
         headless=headless,
     ) as nova:
-
         nova.act(
             "Close any cookie banners. "
             f"Search for apartments near {transit_city}, "
