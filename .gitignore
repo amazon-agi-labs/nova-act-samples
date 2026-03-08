@@ -9,5 +9,16 @@ cdk.out
 cdk.context.json
 
 __pycache__/
-.venv
+.venv*
+.vscode
 .DS_Store
+.ruff_cache
+
+# Agents
+skills-lock.json
+.agents
+.claude
+.kiro
+
+# Example artifacts
+reports/

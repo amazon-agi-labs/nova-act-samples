@@ -6,16 +6,16 @@ Usage:
 python -m examples.booking
 """
 
-import fire  # type: ignore
-
-from examples.utils import get_logger, get_workflow_kwargs
-
+import fire
 from nova_act import NovaAct, workflow
+
+from examples.nova_act_client import NovaActClient
+from examples.utils import get_logger
 
 LOGGER = get_logger(__name__)
 
 
-@workflow(**get_workflow_kwargs())
+@workflow(**NovaActClient.get_workflow_kwargs())
 def main() -> None:
     # Define form data, could be fetched from API
     form_data = {

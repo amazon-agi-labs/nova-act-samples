@@ -7,12 +7,13 @@ python -m examples.flight_search
 """
 
 from datetime import datetime, timedelta
-import fire  # type: ignore
+
+import fire
+from nova_act import NovaAct, workflow
 from pydantic import BaseModel
 
-from examples.utils import get_logger, get_workflow_kwargs
-
-from nova_act import NovaAct, workflow
+from examples.nova_act_client import NovaActClient
+from examples.utils import get_logger
 
 LOGGER = get_logger(__name__)
 
@@ -22,8 +23,10 @@ class Flight(BaseModel):
     price: str
 
 
-@workflow(**get_workflow_kwargs())
-def main(origin: str = "Boston", destination: str = "Wolf", date: str | None = None) -> None:
+@workflow(**NovaActClient.get_workflow_kwargs())
+def main(
+    origin: str = "Boston", destination: str = "Wolf", date: str | None = None
+) -> None:
     if not date:
         date = (datetime.now() + timedelta(days=30)).strftime("%B %d, %Y")
 

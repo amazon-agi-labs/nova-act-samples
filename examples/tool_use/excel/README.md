@@ -11,9 +11,13 @@ Examples demonstrating how to use custom tools with Excel files.
 
 ## Prerequisites
 
-Complete the [Getting Started](../../README.md#getting-started) section in the main examples directory before running these examples.
+1. Complete the [Getting Started](../../README.md#getting-started) section in the main examples directory
+2. Install additional dependencies:
+   ```bash
+   pip install -r examples/tool_use/excel/requirements.txt
+   ```
 
-## Usage Instructions
+## Usage
 
 ### form_fill.py - Excel Data to Form
 
@@ -23,7 +27,7 @@ Demonstrates reading Excel data and populating web forms using custom tools.
 python -m examples.tool_use.excel.form_fill
 ```
 
-**Features:**
+**Implementation Details:**
 - Custom `read_row_as_dict()` tool for Excel file reading
 - Loads local HTML form (`data_files/contact_order_form.html`)
 - Automated form population from Excel data

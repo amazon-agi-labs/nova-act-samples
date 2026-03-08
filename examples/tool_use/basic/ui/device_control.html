@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Device Control Panel</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 500px;
+        margin: 50px auto;
+        padding: 20px;
+      }
+      .device {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px 0;
+      }
+      .status {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: bold;
+      }
+      .status-off {
+        background: #f8d7da;
+        color: #721c24;
+      }
+      .status-on {
+        background: #d4edda;
+        color: #155724;
+      }
+      button {
+        background: #007bff;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-top: 10px;
+      }
+      button:hover {
+        background: #0056b3;
+      }
+      .result {
+        margin-top: 20px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 5px;
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Device Control Panel</h1>
+    <div class="device">
+      <h2>Smart Thermostat</h2>
+      <p>Status: <span id="deviceStatus" class="status status-off">OFF</span></p>
+      <p>Temperature: <span id="temperature">--</span>&deg;F</p>
+      <button id="toggleBtn" onclick="toggleDevice()">Turn On</button>
+    </div>
+
+    <div id="result" class="result">
+      <h3>Validation Result:</h3>
+      <p id="validationResult"></p>
+    </div>
+
+    <script>
+      let deviceOn = false;
+
+      function toggleDevice() {
+        deviceOn = !deviceOn;
+        const statusEl = document.getElementById("deviceStatus");
+        const tempEl = document.getElementById("temperature");
+        const btn = document.getElementById("toggleBtn");
+
+        if (deviceOn) {
+          statusEl.textContent = "ON";
+          statusEl.className = "status status-on";
+          tempEl.textContent = "72";
+          btn.textContent = "Turn Off";
+        } else {
+          statusEl.textContent = "OFF";
+          statusEl.className = "status status-off";
+          tempEl.textContent = "--";
+          btn.textContent = "Turn On";
+        }
+      }
+
+      window.showValidation = function (text) {
+        document.getElementById("validationResult").textContent = text;
+        document.getElementById("result").style.display = "block";
+      };
+    </script>
+  </body>
+</html>

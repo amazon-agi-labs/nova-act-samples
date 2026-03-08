@@ -1,6 +1,16 @@
-# Amazon Bedrock AgentCore Examples
+# Amazon Nova Act with Amazon Bedrock AgentCore Examples
 
 Examples demonstrating how to use Nova Act with Amazon Bedrock AgentCore to build scalable UI automation workflows using managed infrastructure. These examples show how Nova Act's automation capabilities can be enhanced with AgentCore's managed services to create reliable, cost-effective automation solutions.
+
+## Repository Structure
+
+```
+├── browser/
+│   └── main.py             # AgentCore Browser session example
+├── browser_actuator/
+│   ├── main.py             # Custom actuator with AgentCore Browser Tool
+│   └── acbt_actuator.py    # AgentCoreBrowserActuator implementation
+```
 
 ## Prerequisites
 
@@ -18,27 +28,19 @@ These AgentCore workflows leverage Amazon Bedrock AgentCore's managed services t
 
 Learn more about AgentCore in the [AWS documentation](https://docs.aws.amazon.com/bedrock-agentcore/).
 
-## Usage Instructions
+## Usage
 
 ### AgentCore Browser
 
-[`agentcore_browser.py`](agentcore_browser.py)
+The `browser/` directory contains examples for managed browser sessions with Nova Act.
 
-A Nova Act implementation that uses Amazon Bedrock AgentCore Browser Tool for UI automation tasks. Uses the `BrowserClient` from [the `bedrock-agentcore` package](https://pypi.org/project/bedrock-agentcore/) to create managed browser sessions that Nova Act connects to via CDP (Chrome DevTools Protocol).
+[Get Started with AgentCore Browser →](browser/README.md)
 
-**Features:**
+### AgentCore Browser Actuator
 
-- Managed browser sessions with automatic scaling
-- Isolated execution environments for security
-- Cost optimization through pay-per-use model
-- Automatic resource cleanup
-- CDP integration for seamless Nova Act connection
+Custom actuator that manages an AgentCore Browser Tool session, connecting Nova Act to a remote browser via CDP.
 
-**Usage:**
-
-```bash
-python -m examples.agentcore.agentcore_browser
-```
+[Get Started with AgentCore Browser Actuator →](browser_actuator/README.md)
 
 ## Next Steps
 

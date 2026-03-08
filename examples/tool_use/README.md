@@ -17,9 +17,9 @@ Complete the [Getting Started](../README.md#getting-started) section in the main
 
 Tool use workflows use the `@tool` decorator to create custom functions that Nova Act can call during execution. These decorated functions are passed to Nova Act, which will call the tools when necessary to complete the requested task.
 
-Learn more about tools in [the docs](https://github.com/aws/nova-act).
+Learn more about tools in [the docs](https://github.com/aws/nova-act?tab=readme-ov-file#tool-use-beyond-the-browser-preview).
 
-## Usage Instructions
+## Usage
 
 ### Basic Examples
 

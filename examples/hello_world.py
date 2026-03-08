@@ -6,14 +6,13 @@ Usage:
 python -m examples.hello_world
 """
 
-import fire  # type: ignore
-
-from examples.utils import get_workflow_kwargs
-
+import fire
 from nova_act import NovaAct, workflow
 
+from examples.nova_act_client import NovaActClient
 
-@workflow(**get_workflow_kwargs())
+
+@workflow(**NovaActClient.get_workflow_kwargs())
 def main() -> None:
     with NovaAct(
         starting_page="https://nova.amazon.com/act/gym/next-dot/search"

@@ -8,8 +8,6 @@ python -m examples.human_in_the_loop.basic.approval
 
 from pathlib import Path
 
-from examples.utils import get_logger, get_workflow_kwargs
-
 from nova_act import NovaAct, SecurityOptions, workflow
 from nova_act.tools.human.interface.human_input_callback import (
     ApprovalResponse,
@@ -18,15 +16,16 @@ from nova_act.tools.human.interface.human_input_callback import (
 )
 from nova_act.types.act_errors import NoHumanInputToolAvailable
 
+from examples.nova_act_client import NovaActClient
+from examples.utils import get_logger
+
 LOGGER = get_logger(__name__)
+
 
 class ApprovalCallbacks(HumanInputCallbacksBase):
     """
     Implements an approval() callback which prompts user for their answer
     """
-
-    def __init__(self) -> None:
-        super().__init__()
 
     def approve(self, message: str) -> ApprovalResponse:
         print(
@@ -46,11 +45,14 @@ class ApprovalCallbacks(HumanInputCallbacksBase):
         raise NoHumanInputToolAvailable(message)
 
 
-@workflow(**get_workflow_kwargs())
+SCRIPT_DIR = str(Path(__file__).parent.absolute())
+
+
+@workflow(**NovaActClient.get_workflow_kwargs())
 def main():
     with NovaAct(
-        starting_page=f"file://{Path(__file__).parent.absolute() / 'ui' / 'checkout.html'}",
-        security_options=SecurityOptions(allow_file_urls=True),
+        starting_page=f"file://{SCRIPT_DIR}/ui/checkout.html",
+        security_options=SecurityOptions(allowed_file_open_paths=[f"{SCRIPT_DIR}/*"]),
         human_input_callbacks=ApprovalCallbacks(),
         tty=False,
     ) as nova:

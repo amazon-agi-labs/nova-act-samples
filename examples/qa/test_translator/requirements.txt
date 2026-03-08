@@ -1,0 +1,8 @@
+-r ../../requirements.txt
+pydantic-settings>=2.0
+python-dotenv>=1.0.0
+pytest>=8.4.2
+pytest-html==4.1.1
+pytest-html-nova-act>=1.0.2
+gherkin-official>=28.0.0
+strands-agents>=1.0

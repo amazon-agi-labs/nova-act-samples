@@ -1,6 +1,6 @@
 """Extract data from Excel files and populate a form.
 
-See the README for more details.
+Demonstrates reading Excel data with a custom tool and populating web forms.
 
 Usage:
 python -m examples.tool_use.excel.form_fill [--file_name <excel_file>] [--row_number <row>]
@@ -8,19 +8,19 @@ python -m examples.tool_use.excel.form_fill [--file_name <excel_file>] [--row_nu
 
 from pathlib import Path
 
-import fire  # type: ignore
+import fire
 import pandas as pd
+from nova_act import NovaAct, SecurityOptions, tool, workflow
 from pydantic import BaseModel
 
-from examples.utils import get_logger, get_workflow_kwargs
-
-from nova_act import NovaAct, SecurityOptions, workflow, tool
+from examples.nova_act_client import NovaActClient
+from examples.utils import get_logger
 
 LOGGER = get_logger(__name__)
 
 
 @tool
-def read_row_as_dict(file_path, row_number):
+def read_row_as_dict(file_path: str, row_number: int) -> dict:
     """
     Reads a specific row from an Excel file and returns it as a dictionary where
     column headers are keys and row values are the corresponding dictionary values.
@@ -55,16 +55,12 @@ class Person(BaseModel):
     address: str
 
 
-class PersonList(BaseModel):
-    people: list[Person]
-
-
 # Get the directory where our data files are stored
-script_dir = Path(__file__).parent
-data_files_dir = script_dir / "data_files"
+SCRIPT_DIR = Path(__file__).parent
+DATA_FILES_DIR = str((SCRIPT_DIR / "data_files").absolute())
 
 
-@workflow(**get_workflow_kwargs())
+@workflow(**NovaActClient.get_workflow_kwargs())
 def main(file_name: str = "people.xlsx", row_number: int = 1):
     """Extract data from Excel files and populate a form.
 
@@ -75,7 +71,7 @@ def main(file_name: str = "people.xlsx", row_number: int = 1):
     if row_number not in [1, 2, 3]:
         row_number = 1
 
-    file_uri = (data_files_dir / file_name).absolute().as_uri()
+    file_uri = Path(f"{DATA_FILES_DIR}/{file_name}").as_uri()
 
     prompt = f"""
     Read the data from row number {row_number} in the Excel file {file_uri} in the current folder.
@@ -84,8 +80,10 @@ def main(file_name: str = "people.xlsx", row_number: int = 1):
     Return the data that you read from the Excel file.
     """
     with NovaAct(
-        starting_page=f"file://{data_files_dir.absolute() / 'contact_order_form.html'}",
-        security_options=SecurityOptions(allow_file_urls=True),
+        starting_page=f"file://{DATA_FILES_DIR}/contact_order_form.html",
+        security_options=SecurityOptions(
+            allowed_file_open_paths=[f"{DATA_FILES_DIR}/*"]
+        ),
         ignore_https_errors=True,
         tools=[read_row_as_dict],
     ) as nova:

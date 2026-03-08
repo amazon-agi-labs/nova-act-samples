@@ -12,17 +12,21 @@ python -m examples.browser_dialogs.main
 """
 
 import os
+
 from nova_act import NovaAct, SecurityOptions, workflow
 from playwright.sync_api import Dialog
-from examples.utils import get_workflow_kwargs, get_logger
 
+from examples.nova_act_client import NovaActClient
+from examples.utils import get_logger
 
 LOGGER = get_logger(__name__)
 
 
 def handle_dialog(dialog: Dialog):
     """Handle all dialog types based on dialog.type."""
-    LOGGER.info(f"\n\n{dialog.type.capitalize()} dialog triggered with message: {dialog.message}\n\n")
+    LOGGER.info(
+        f"\n\n{dialog.type.capitalize()} dialog triggered with message: {dialog.message}\n\n"
+    )
 
     if dialog.type == "prompt":
         dialog.accept("Nova Act")
@@ -32,7 +36,7 @@ def handle_dialog(dialog: Dialog):
         dialog.dismiss()
 
 
-@workflow(**get_workflow_kwargs())
+@workflow(**NovaActClient.get_workflow_kwargs())
 def main() -> None:
     """Run Nova Act on a website that uses browser native dialogs."""
 
@@ -56,6 +60,7 @@ def main() -> None:
 
         result = nova.act_get("Return the Player and Difficulty")
         LOGGER.info(f"Game setup complete with: {result.parsed_response}")
+
 
 if __name__ == "__main__":
     main()
