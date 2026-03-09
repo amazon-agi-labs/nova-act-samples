@@ -1,0 +1,14 @@
+{
+  "name": "nova-act-electron-example",
+  "version": "1.0.0",
+  "description": "Minimal Electron app for demonstrating Nova Act CDP integration",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc && mkdir -p dist/renderer && cp src/renderer/*.html src/renderer/*.css src/renderer/*.js dist/renderer/",
+    "start": "npm run build && electron . --remote-debugging-port=9222"
+  },
+  "devDependencies": {
+    "electron": "~40.0.0",
+    "typescript": "~5.8.0"
+  }
+}

@@ -14,7 +14,7 @@ nova_act_qa/
 
 ### `NovaActQa`
 
-Extends `NovaAct` with `expect()` for assertions and `check()` for boolean state verification. Use `expect(prompt)` to create an assertion chain (`to_equal`, `to_contain`, `to_be_true`, etc.) or extract values (`as_string`, `as_number`, `as_boolean`). Use `check(prompt)` as shorthand for `expect(prompt).to_be_true()`. Assertions raise `AssertionError` on failure with the prompt included in the message. See [`nova_act_qa.py`](nova_act_qa.py) for the full API and the [parent QA example](../README.md) for usage.
+Extends `NovaAct` with `expect()` for assertions and `check()` for boolean state verification. Use `expect(prompt)` to extract values (`as_string`, `as_number`, `as_boolean`) or chain with matchers. See [`nova_act_qa.py`](nova_act_qa.py) for the full API and the [parent QA example](../README.md) for usage.
 
 ### Quick Example
 

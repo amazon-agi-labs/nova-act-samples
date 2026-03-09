@@ -7,7 +7,8 @@ Examples demonstrating how to extend or replace Nova Act's default browser actua
 ## Repository Structure
 
 ```
-├── browser/                    # Browser actuation steering (experimental)
+├── browser/                    # Browser actuation steering
+├── desktop/                    # Desktop app automation
 └── mobile/                     # Mobile app automation on AWS Device Farm
 ```
 
@@ -22,6 +23,12 @@ An actuator is the component that translates Nova Act's high-level actions (clic
 Demonstrates how to steer Nova Act to use actuation types supported by the SDK but outside the default behavior, such as click variants and hover.
 
 [Get Started with Browser Actuation →](browser/README.md)
+
+### Desktop
+
+Desktop app automation. Includes an Electron example with a task manager app.
+
+[Get Started with Desktop Actuation →](desktop/README.md)
 
 ### Mobile
 
