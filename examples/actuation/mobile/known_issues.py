@@ -17,33 +17,46 @@ python -m examples.actuation.mobile.known_issues
 """
 
 from datetime import datetime, timedelta
+from pathlib import Path
 
-from nova_act import NovaAct, workflow
+import fire
+from nova_act import workflow
 
-from examples.actuation.mobile.nova_act_mobile import DeviceFarmActuator, MobileActuator
-from examples.actuation.mobile.utils.cli import CliArgs
+from examples.actuation.mobile.nova_act_mobile import NovaActMobile
 from examples.nova_act_client import NovaActClient
 from examples.utils import get_logger
 
 LOGGER = get_logger(__name__)
 
+# Default sample app
+_SAMPLE_APP_PACKAGE = "com.amazonaws.devicefarm.android.referenceapp"
+_SAMPLE_APP_ACTIVITY = (
+    "com.amazonaws.devicefarm.android.referenceapp.Activities.MainActivity"
+)
+_SAMPLE_APP_PATH = str(
+    Path(__file__).resolve().parent
+    / "nova_act_mobile"
+    / "app"
+    / "samples"
+    / "aws-device-farm-sample"
+    / "app-debug.apk"
+)
+
 
 @workflow(**NovaActClient.get_workflow_kwargs())
-def main() -> None:
-    cli_args = CliArgs()  # type: ignore[call-arg]
-    app_config = cli_args.to_app_config()
-    upload_config = cli_args.to_upload_config()
-
-    with NovaAct(
-        actuator=DeviceFarmActuator(
-            app_config=app_config,
-            upload_config=upload_config,
-            project_arn=cli_args.project_arn,
-            device_arn=cli_args.device_arn,
-        ),
-        starting_page=MobileActuator.app_url(app_config.app_identifier),
-        ignore_https_errors=True,
-        ignore_screen_dims_check=True,
+def main(
+    app_package: str = _SAMPLE_APP_PACKAGE,
+    app_activity: str = _SAMPLE_APP_ACTIVITY,
+    app_path: str = _SAMPLE_APP_PATH,
+    project_arn: str | None = None,
+    device_arn: str | None = None,
+) -> None:
+    with NovaActMobile(
+        app_package=app_package,
+        app_activity=app_activity,
+        app_path=app_path,
+        project_arn=project_arn,
+        device_arn=device_arn,
     ) as nova:
         # Navigate to the Inputs screen
         nova.act("Go to the Inputs page")
@@ -84,4 +97,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    fire.Fire(main)

@@ -3,6 +3,8 @@
 from appium.webdriver.webdriver import WebDriver
 from nova_act.util.logging import setup_logging
 
+from examples.actuation.mobile.nova_act_mobile.actuation.util import get_platform
+
 _LOGGER = setup_logging(__name__)
 
 
@@ -187,9 +189,7 @@ def open_deep_link(
                 launch_app(driver, app_identifier)
 
         # Open the deep link using platform-specific method
-        platform = driver.capabilities.get("platformName", "").lower()
-
-        if "ios" in platform:
+        if get_platform(driver) == "ios":
             # For iOS, use mobile: deepLink command
             driver.execute_script(
                 "mobile: deepLink", {"url": url, "package": app_identifier or ""}

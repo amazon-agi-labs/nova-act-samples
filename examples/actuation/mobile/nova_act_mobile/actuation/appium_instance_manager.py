@@ -8,6 +8,7 @@ intended for direct use.
 import base64
 import os
 from typing import Any
+from urllib.parse import urlparse
 
 from appium import webdriver
 from appium.webdriver.webdriver import WebDriver
@@ -69,7 +70,7 @@ class AppiumInstanceManager:
             _LOGGER.info(
                 f"Starting Appium session for {self._options.platform} "
                 f"device '{self._options.device_name}' "
-                f"on server {self._options.appium_server_url}"
+                f"on server {urlparse(self._options.appium_server_url).hostname}"
             )
 
             # Build capabilities

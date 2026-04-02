@@ -1,6 +1,6 @@
 # Amazon Nova Act Mobile QA Examples
 
-QA testing on mobile apps using `NovaActQa` with AWS Device Farm. Includes examples for both iOS and Android.
+QA testing on mobile apps using `NovaActMobileQa` with AWS Device Farm. Includes examples for both iOS and Android.
 
 ## Repository Structure
 
@@ -30,8 +30,8 @@ python -m examples.qa.mobile_qa.android
 ```
 
 **Implementation Details:**
-- Combines `NovaActQa` with `DeviceFarmActuator` for Android device provisioning
-- Tests span multiple apps by switching via `go_to_url()` with `MobileAppConfig` identifiers
+- Uses `NovaActMobileQa` for combined mobile setup and QA assertions
+- Tests span multiple apps by switching via `go_to_url()` with `MobileActuator.app_url()`
 
 ### ios.py - iOS QA Test
 
@@ -42,8 +42,8 @@ python -m examples.qa.mobile_qa.ios
 ```
 
 **Implementation Details:**
-- Combines `NovaActQa` with `DeviceFarmActuator` for iOS device provisioning
-- Tests span multiple apps by switching via `go_to_url()` with `MobileAppConfig` identifiers
+- Uses `NovaActMobileQa` for combined mobile setup and QA assertions
+- Tests span multiple apps by switching via `go_to_url()` with `MobileActuator.app_url()`
 
 ## Next Steps
 

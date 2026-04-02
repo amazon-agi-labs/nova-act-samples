@@ -7,7 +7,7 @@ BrowserStack, etc.). For Device Farm integration, see DeviceFarmActuator.
 
 import time
 from datetime import UTC, datetime
-from typing import Any, Literal
+from typing import Any, Literal, NamedTuple
 from urllib.parse import quote, unquote
 
 from appium.webdriver.webdriver import WebDriver
@@ -39,7 +39,6 @@ from examples.actuation.mobile.nova_act_mobile.actuation.util.mobile_click impor
     mobile_click,
 )
 from examples.actuation.mobile.nova_act_mobile.actuation.util.mobile_observation import (
-    get_screen_dimensions,
     get_ui_hierarchy,
     parse_ui_hierarchy,
     take_mobile_screenshot,
@@ -51,7 +50,7 @@ from examples.actuation.mobile.nova_act_mobile.actuation.util.mobile_type import
     mobile_type,
 )
 from examples.actuation.mobile.nova_act_mobile.actuation.util.mobile_wait import (
-    smart_wait,
+    _is_session_error,
     wait_for_app_idle,
 )
 from examples.actuation.mobile.nova_act_mobile.platform import Platform
@@ -59,6 +58,7 @@ from examples.actuation.mobile.nova_act_mobile.platform import Platform
 _LOGGER = setup_logging(__name__)
 
 _MAX_OBSERVATION_RETRIES = 3
+_SESSION_RECOVERY_BACKOFF_S = 3.0
 _APP_URL_PREFIX = "https://"
 _DEEP_LINK_PATH = "/deeplink/"
 
@@ -73,6 +73,16 @@ class MobileActuator(BrowserActuatorBase, AppiumDriverManagerBase):
     Can be constructed directly with AppiumInstanceOptions for any Appium server,
     or subclassed to add infrastructure provisioning (see DeviceFarmActuator).
     """
+
+    class _BboxScale(NamedTuple):
+        """Precomputed scale factors: resized-screenshot-space → driver-space.
+
+        Computed once per observation from the resized screenshot dimensions and
+        the driver's coordinate space (logical points on iOS, pixels on Android).
+        """
+
+        sx: float
+        sy: float
 
     def __init__(self, appium_options: AppiumInstanceOptions):
         """Initialize the mobile actuator.
@@ -92,7 +102,11 @@ class MobileActuator(BrowserActuatorBase, AppiumDriverManagerBase):
             f"Device={appium_options.device_name} "
             f"Automation={appium_options.automation_name}"
         )
-        self._pixel_ratio: float | None = None
+        # Precomputed scale factors for converting model bounding boxes
+        # (in resized-screenshot space) to the driver's coordinate space.
+        # Set on each observation; actions must not be called before the
+        # first observation.
+        self._bbox_scale: MobileActuator._BboxScale | None = None
 
     def start(self, **kwargs: Any) -> None:  # type: ignore[explicit-any]
         """Start the Appium driver session and launch the app.
@@ -146,68 +160,36 @@ class MobileActuator(BrowserActuatorBase, AppiumDriverManagerBase):
         return self._appium_manager.driver
 
     def _scale_bbox(self, bbox: BboxTLBR) -> BboxTLBR:
-        """Scale bbox from pixel space to point space for iOS real devices.
+        """Scale bbox from resized-screenshot space to driver coordinate space.
 
-        iOS screenshots are in physical pixels but XCUITest expects touch
-        coordinates in logical points. On simulators the ratio is 1 (no-op).
-        On Android, UIAutomator2 uses pixel coordinates natively, so no
-        scaling is needed.
+        The model outputs bounding boxes in the resized screenshot's pixel
+        coordinate space.  This method converts them to the coordinate space
+        the Appium driver expects for touch actions:
+
+        - Android (UIAutomator2): native pixel coordinates.
+        - iOS (XCUITest): logical point coordinates.
 
         Args:
-            bbox: Bounding box in screenshot pixel coordinates.
+            bbox: Bounding box in resized-screenshot pixel coordinates.
 
         Returns:
-            Bounding box scaled to the driver's coordinate space.
+            Bounding box in the driver's coordinate space.
+
+        Raises:
+            RuntimeError: If called before the first observation.
         """
-        if self._platform != Platform.IOS:
-            return bbox
+        if self._bbox_scale is None:
+            raise RuntimeError(
+                "Cannot scale bounding box — no observation has been taken yet"
+            )
 
-        if self._pixel_ratio is None:
-            self._pixel_ratio = self._get_ios_pixel_ratio()
-
-        if self._pixel_ratio == 1.0:
-            return bbox
-
-        r = self._pixel_ratio
+        s = self._bbox_scale
         return BboxTLBR(
-            top=bbox.top / r,
-            left=bbox.left / r,
-            bottom=bbox.bottom / r,
-            right=bbox.right / r,
+            top=bbox.top * s.sy,
+            left=bbox.left * s.sx,
+            bottom=bbox.bottom * s.sy,
+            right=bbox.right * s.sx,
         )
-
-    def _get_ios_pixel_ratio(self) -> float:
-        """Compute the pixel ratio for an iOS device.
-
-        iOS screenshots are captured in physical pixels, but XCUITest dispatches
-        touch actions in logical points. On simulators the ratio is 1; on real
-        Retina devices it is typically 2 or 3.
-
-        Returns:
-            The scale factor (pixels / points).
-        """
-        try:
-            screenshot_base64 = self.driver.get_screenshot_as_base64()
-            import base64
-            import io
-
-            from PIL import Image
-
-            img = Image.open(io.BytesIO(base64.b64decode(screenshot_base64)))
-            screenshot_width = img.width
-
-            window_width = self.driver.get_window_size()["width"]
-            if window_width > 0:
-                ratio = screenshot_width / window_width
-                _LOGGER.debug(
-                    f"iOS pixel ratio: {ratio} "
-                    f"(screenshot={screenshot_width}, window={window_width})"
-                )
-                return ratio
-        except Exception as e:
-            _LOGGER.warning(f"Failed to detect iOS pixel ratio: {e}")
-
-        return 1.0
 
     def agent_click(
         self,
@@ -266,7 +248,11 @@ class MobileActuator(BrowserActuatorBase, AppiumDriverManagerBase):
             None
         """
         bbox = self._scale_bbox(parse_bbox_string(box))
-        mobile_type(bbox, value, self.driver, "pressEnter" if pressEnter else None)
+        try:
+            mobile_type(bbox, value, self.driver, "pressEnter" if pressEnter else None)
+        except Exception as e:
+            # Don't raise — let the agent attempt to recover from a bad type
+            _LOGGER.warning(f"Type action failed for value '{value}': {e}")
         return None
 
     @staticmethod
@@ -368,7 +354,10 @@ class MobileActuator(BrowserActuatorBase, AppiumDriverManagerBase):
         if seconds < 0:
             raise ValueError("Seconds must be non-negative")
 
-        smart_wait(self.driver, seconds)
+        if seconds == 0:
+            self.wait_for_page_to_settle()
+        else:
+            time.sleep(seconds)
         return None
 
     def wait_for_page_to_settle(self) -> JSONType:
@@ -383,12 +372,17 @@ class MobileActuator(BrowserActuatorBase, AppiumDriverManagerBase):
     def take_observation(self) -> BrowserObservation:
         """Capture the current state of the mobile app.
 
+        The screenshot is resized to match the Nova Act model's expected pixel
+        budget (~1.3 M pixels) while preserving the device's native aspect
+        ratio.  ``browserDimensions`` reports the resized image dimensions so
+        the model's coordinate space matches the screenshot it receives.
+
         Returns:
             BrowserObservation containing:
             - activeURL: Current app identifier
-            - browserDimensions: Screen dimensions
+            - browserDimensions: Resized screenshot dimensions
             - idToBboxMap: Element ID to bounding box mappings
-            - screenshotBase64: Base64-encoded screenshot
+            - screenshotBase64: Base64-encoded resized screenshot
             - simplifiedDOM: Simplified UI hierarchy
             - timestamp_ms: Observation timestamp
             - userAgent: Platform information
@@ -398,9 +392,6 @@ class MobileActuator(BrowserActuatorBase, AppiumDriverManagerBase):
         """
         for attempt in range(_MAX_OBSERVATION_RETRIES):
             try:
-                # Get screen dimensions
-                dimensions = get_screen_dimensions(self.driver)
-
                 # Get platform info
                 user_agent = self._platform_info
 
@@ -408,11 +399,20 @@ class MobileActuator(BrowserActuatorBase, AppiumDriverManagerBase):
                 ui_hierarchy_xml = get_ui_hierarchy(self.driver)
                 id_to_bbox_map, simplified_dom = parse_ui_hierarchy(
                     ui_hierarchy_xml,
-                    self._platform,
+                    self.driver,
                 )
 
-                # Take screenshot
-                screenshot_data_url = take_mobile_screenshot(self.driver)
+                # Take screenshot (resized to model pixel budget)
+                screenshot_data_url, img_w, img_h = take_mobile_screenshot(
+                    self.driver,
+                )
+
+                # Precompute scale factors for bbox conversion.
+                window_size = self.driver.get_window_size()
+                self._bbox_scale = MobileActuator._BboxScale(
+                    sx=window_size["width"] / img_w,
+                    sy=window_size["height"] / img_h,
+                )
 
                 # Get current app identifier
                 active_url = self._app_identifier
@@ -420,12 +420,12 @@ class MobileActuator(BrowserActuatorBase, AppiumDriverManagerBase):
                 return {
                     "activeURL": active_url,
                     "browserDimensions": {
-                        "scrollHeight": dimensions["scrollHeight"],
-                        "scrollLeft": dimensions["scrollLeft"],
-                        "scrollTop": dimensions["scrollTop"],
-                        "scrollWidth": dimensions["scrollWidth"],
-                        "windowHeight": dimensions["windowHeight"],
-                        "windowWidth": dimensions["windowWidth"],
+                        "scrollHeight": img_h,
+                        "scrollLeft": 0,
+                        "scrollTop": 0,
+                        "scrollWidth": img_w,
+                        "windowHeight": img_h,
+                        "windowWidth": img_w,
                     },
                     "idToBboxMap": id_to_bbox_map,
                     "screenshotBase64": screenshot_data_url,
@@ -439,12 +439,25 @@ class MobileActuator(BrowserActuatorBase, AppiumDriverManagerBase):
                     # Last attempt failed, re-raise
                     raise
 
-                _LOGGER.warning(
-                    f"Observation attempt {attempt + 1}/{_MAX_OBSERVATION_RETRIES} failed: {e}, retrying..."
-                )
-                # Wait briefly and retry
-                wait_for_app_idle(self.driver)
-                time.sleep(0.5)
+                if _is_session_error(e):
+                    # Known Device Farm transient: the console viewer
+                    # temporarily takes over the WDA session. Back off
+                    # longer to give it time to recover — no point
+                    # running wait_for_app_idle on a dead session.
+                    _LOGGER.info(
+                        f"Session temporarily unavailable (attempt "
+                        f"{attempt + 1}/{_MAX_OBSERVATION_RETRIES}), "
+                        f"waiting {_SESSION_RECOVERY_BACKOFF_S}s for recovery..."
+                    )
+                    time.sleep(_SESSION_RECOVERY_BACKOFF_S)
+                else:
+                    _LOGGER.warning(
+                        f"Observation attempt {attempt + 1}/{_MAX_OBSERVATION_RETRIES} "
+                        f"failed: {e}, retrying..."
+                    )
+                    # Wait briefly and retry
+                    wait_for_app_idle(self.driver)
+                    time.sleep(0.5)
 
         # Should not reach here, but make type checker happy
         raise RuntimeError("Failed to take observation after all retries")

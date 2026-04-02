@@ -1,6 +1,6 @@
 # Mobile Actuators
 
-[Appium](https://appium.io/)-based mobile actuators that implement the Nova Act `BrowserActuatorBase` interface for iOS and Android.
+[Appium](https://appium.io/)-based mobile actuators that implement the Nova Act `BrowserActuatorBase` interface for iOS and Android and integrate with AWS Device Farm.
 
 ## Structure
 
@@ -28,23 +28,19 @@ Infrastructure-agnostic Appium actuator. Works with any Appium server, whether l
 
 #### Using your own Appium server
 
-To use `MobileActuator` with an Appium server:
+To use `MobileActuator` directly with an Appium server:
 
 ```python
-# Define app identity — change to match your app
+# Android
 app = MobileAppConfig.for_android(
-    app_package="com.android.settings",  # your app's package name
-    app_activity=".Settings",  # your app's launch activity
+    app_package="com.example.app",
+    app_activity=".MainActivity",
 )
 
-# iOS alternative:
-# app = MobileAppConfig.for_ios(bundle_id="com.example.myapp")
-
-# Configure Appium connection
 appium_options = AppiumInstanceOptions(
     platform=app.platform,
-    device_name="emulator-5554",  # your device name or emulator ID
-    platform_version="15",  # your device's OS version
+    device_name="emulator-5554",
+    platform_version="15",
     app_package=app.app_package,
     app_activity=app.app_activity,
 )
@@ -53,14 +49,34 @@ with NovaAct(
     actuator=MobileActuator(appium_options=appium_options),
     starting_page=MobileActuator.app_url(app.app_identifier),
 ) as nova:
-    nova.act("tap the login button")
+    nova.act("Tap the login button")
 ```
 
-`AppiumInstanceOptions` defaults to `http://127.0.0.1:4723` for the Appium server URL. Set `appium_server_url` to connect to a remote server. See [`appium_instance_options.py`](appium_instance_options.py) for the full list of fields including `udid`, `app_path`, and `additional_capabilities`.
+```python
+# iOS
+app = MobileAppConfig.for_ios(bundle_id="com.example.app")
+
+appium_options = AppiumInstanceOptions(
+    platform=app.platform,
+    device_name="iPhone 15",
+    platform_version="17",
+    bundle_id=app.bundle_id,
+)
+
+with NovaAct(
+    actuator=MobileActuator(appium_options=appium_options),
+    starting_page=MobileActuator.app_url(app.app_identifier),
+) as nova:
+    nova.act("Tap the login button")
+```
+
+`AppiumInstanceOptions` defaults to `http://127.0.0.1:4723` for the Appium server URL, set `appium_server_url` to connect to another server. See [`appium_instance_options.py`](appium_instance_options.py) for the full list of fields including `udid`, `app_path`, and `additional_capabilities`.
 
 ### `DeviceFarmActuator`
 
-Extends `MobileActuator` to provision and tear down an AWS Device Farm session automatically. Takes a `MobileAppConfig` for app identity and an optional `DeviceFarmUploadConfig` for the app binary. See the [parent example](../../README.md) for usage.
+Extends `MobileActuator` to provision and tear down an AWS Device Farm session automatically. See the [parent example](../../README.md) for usage.
+
+> For a simpler API that handles actuator setup automatically, use [`NovaActMobile`](../README.md).
 
 ## Platform Notes
 
