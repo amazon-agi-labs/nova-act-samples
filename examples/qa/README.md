@@ -29,7 +29,7 @@ Simple QA test demonstrating `NovaActQa`'s assertion and extraction methods.
 
 ### Mobile QA
 
-QA testing on mobile apps using `NovaActQa` with AWS Device Farm and a [custom mobile actuator](../actuation/mobile/nova_act_mobile/actuation/README.md).
+QA testing on mobile apps using `NovaActMobileQa` with AWS Device Farm and a [custom mobile actuator](../actuation/mobile/nova_act_mobile/actuation/README.md).
 
 [Get Started with Mobile QA →](mobile_qa/README.md)
 

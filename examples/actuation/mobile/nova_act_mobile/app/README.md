@@ -10,4 +10,4 @@ Dataclass that identifies which mobile app to launch and interact with. Holds pl
 
 ## Sample App
 
-`samples/aws-device-farm-sample/` contains a pre-built Android APK from the [AWS Device Farm sample app](https://github.com/aws-samples/aws-device-farm-sample-app-for-android). This is the default app used when `main.py` is run with no arguments.
+`samples/aws-device-farm-sample/` contains a pre-built Android APK from the [AWS Device Farm sample app](https://github.com/aws-samples/aws-device-farm-sample-app-for-android). This is the default app used by [`custom_app.py`](../../custom_app.py) and [`known_issues.py`](../../known_issues.py) when run with no arguments.

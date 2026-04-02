@@ -7,7 +7,7 @@ AWS Device Farm client for Nova Act mobile automation. Handles project/device di
 ```
 device_farm/
 ├── client.py        # DeviceFarmClient — all Device Farm API operations
-├── config.py        # DeviceFarmConfig — constants (timeouts, default app)
+├── config.py        # DeviceFarmConfig — constants (timeouts, polling)
 └── upload_config.py # DeviceFarmUploadConfig — app upload configuration (name, path)
 ```
 

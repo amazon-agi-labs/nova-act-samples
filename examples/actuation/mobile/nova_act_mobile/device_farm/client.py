@@ -13,6 +13,7 @@ Error Handling Strategy:
 import time
 from dataclasses import dataclass
 from datetime import datetime
+from urllib.parse import urlparse
 
 import boto3
 import requests
@@ -362,7 +363,7 @@ class DeviceFarmClient:
             raise RuntimeError(
                 "Device Farm session response missing remoteDriverEndpoint"
             )
-        logger.debug(f"Endpoint: {endpoint[:80]}...")
+        logger.debug(f"Endpoint: {urlparse(endpoint).hostname}")
         return str(endpoint)
 
     def create_project(self, name: str) -> str:
@@ -731,7 +732,7 @@ class DeviceFarmClient:
 
             # Extract endpoint
             endpoint_url = self.get_session_endpoint(session_arn)
-            logger.info(f"✓ Endpoint: {endpoint_url[:80]}...")
+            logger.info(f"✓ Endpoint: {urlparse(endpoint_url).hostname}")
 
             # Re-fetch session to get the real ARN (initial ARN may have placeholder IDs)
             running_response: GetRemoteAccessSessionResultTypeDef = (

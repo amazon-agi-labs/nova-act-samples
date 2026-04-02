@@ -6,13 +6,57 @@ from typing import Literal
 from appium.webdriver.webdriver import WebDriver
 from nova_act.types.api.step import BboxTLBR
 from nova_act.util.logging import setup_logging
-from selenium.webdriver.common.keys import Keys
 
+from examples.actuation.mobile.nova_act_mobile.actuation.util import get_platform
 from examples.actuation.mobile.nova_act_mobile.actuation.util.mobile_click import (
     mobile_click,
 )
 
 _LOGGER = setup_logging(__name__)
+
+
+def _press_enter(driver: WebDriver) -> None:
+    """Press Enter/Return using platform-native actions.
+
+    Avoids ``Keys.RETURN`` which injects a literal Unicode character
+    (U+E006) into the text field on many mobile WebDrivers.
+
+    iOS: sends ``\\n`` via the active element, which XCUITest interprets
+    as the Return key.
+    Android: uses ``press_keycode(66)`` (KEYCODE_ENTER).
+    """
+    if get_platform(driver) == "ios":
+        driver.switch_to.active_element.send_keys("\n")
+    else:
+        driver.press_keycode(66)
+    _LOGGER.debug("Pressed Enter (native)")
+
+
+def _select_all_and_delete(driver: WebDriver) -> None:
+    """Clear the focused field.
+
+    iOS: uses ``active_element.clear()`` which is reliable under XCUITest.
+    ``press_keycode`` is not available on iOS (no KeyEvent system), and
+    WDA's ``mobile: pressButton`` only supports home, volumeUp, and
+    volumeDown — so ``.clear()`` is the best option.
+
+    Android: uses Ctrl+A → Delete via key codes instead of
+    ``active_element.clear()``, which can behave inconsistently across
+    apps and input field types (sometimes failing to clear, losing focus,
+    or dismissing the keyboard).
+    """
+    try:
+        if get_platform(driver) == "ios":
+            driver.switch_to.active_element.clear()
+        else:
+            # Android: Ctrl+A (KEYCODE_A=29 with META_CTRL_ON=0x1000)
+            driver.press_keycode(29, metastate=0x1000)
+            time.sleep(0.1)
+            # KEYCODE_DEL = 67 (backspace)
+            driver.press_keycode(67)
+        _LOGGER.debug("Cleared field")
+    except Exception as e:
+        _LOGGER.debug(f"Field clear failed: {e}")
 
 
 def mobile_type(
@@ -23,8 +67,8 @@ def mobile_type(
 ) -> None:
     """Type text into a mobile element at the specified bounding box.
 
-    This function first taps the element to focus it, then sends the text,
-    and optionally presses Enter/Return.
+    This function first taps the element to focus it, clears existing text,
+    sends the new text, and optionally presses Enter/Return.
 
     Args:
         bbox: Bounding box of the target input element (BboxTLBR).
@@ -41,15 +85,14 @@ def mobile_type(
     mobile_click(bbox, driver, click_type="left")
 
     # Small delay to allow keyboard to appear
-
     time.sleep(0.3)
 
     # Get the currently active element (should be the focused input)
     try:
         active_element = driver.switch_to.active_element
 
-        # Clear existing text if any (optional - can be made configurable)
-        # active_element.clear()
+        # Clear existing text
+        _select_all_and_delete(driver)
 
         # Send the text
         active_element.send_keys(value)
@@ -58,8 +101,7 @@ def mobile_type(
 
         # Press Enter if requested
         if press_enter == "pressEnter":
-            active_element.send_keys(Keys.RETURN)
-            _LOGGER.debug("Pressed Enter key")
+            _press_enter(driver)
 
     except Exception as e:
         _LOGGER.debug(f"Primary typing failed, trying fallback: {e}")
@@ -84,8 +126,7 @@ def _type_via_coordinate_fallback(
     Raises:
         RuntimeError: If fallback typing fails or platform is Android.
     """
-    platform = driver.capabilities.get("platformName", "").lower()
-    if "ios" not in platform:
+    if get_platform(driver) != "ios":
         raise RuntimeError(
             "No typing fallback available for Android — active_element.send_keys() already failed"
         )
@@ -93,7 +134,7 @@ def _type_via_coordinate_fallback(
     try:
         driver.execute_script("mobile: type", {"text": value})
         if press_enter == "pressEnter":
-            driver.execute_script("mobile: type", {"text": "\n"})
+            _press_enter(driver)
     except Exception as e:
         raise RuntimeError(f"iOS mobile: type fallback failed: {e}") from e
 

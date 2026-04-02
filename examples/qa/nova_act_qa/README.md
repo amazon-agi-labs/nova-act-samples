@@ -6,17 +6,16 @@
 
 ```
 nova_act_qa/
-├── __init__.py        # Re-exports NovaActQa
-├── nova_act_qa.py     # Implementation
+├── __init__.py              # Re-exports NovaActQa and NovaActMobileQa
+├── nova_act_qa.py           # NovaActQa implementation
+├── nova_act_mobile_qa.py    # NovaActMobileQa implementation
 ```
 
 ## Key Classes
 
 ### `NovaActQa`
 
-Extends `NovaAct` with `expect()` for assertions and `check()` for boolean state verification. Use `expect(prompt)` to extract values (`as_string`, `as_number`, `as_boolean`) or chain with matchers. See [`nova_act_qa.py`](nova_act_qa.py) for the full API and the [parent QA example](../README.md) for usage.
-
-### Quick Example
+Extends `NovaAct` with `expect()` for assertions and `check()` for boolean state verification. Use `expect(prompt)` to extract values (`as_string`, `as_number`, `as_boolean`) or chain with matchers. See [`nova_act_qa.py`](nova_act_qa.py) for the full API.
 
 ```python
 with NovaActQa(starting_page="https://example.com") as nova:
@@ -27,4 +26,15 @@ with NovaActQa(starting_page="https://example.com") as nova:
     order_id = nova.expect("The order ID").as_string()
 ```
 
-> This is a conceptual example showing the API surface. Replace the URL and prompts with your own application.
+### `NovaActMobileQa`
+
+Combines [`NovaActMobile`](../../actuation/mobile/nova_act_mobile/README.md) with `NovaActQa` for mobile actuation and QA utilities. See [`nova_act_mobile_qa.py`](nova_act_mobile_qa.py).
+
+```python
+with NovaActMobileQa(app_package="com.example.app", app_activity=".Main") as nova:
+    nova.act("Tap the login button")
+    nova.check("User is logged in")
+    nova.expect("Welcome message").to_contain("Hello")
+```
+
+> These are conceptual examples showing the API surface. Replace the identifiers and prompts with your own application.
