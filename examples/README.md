@@ -17,7 +17,8 @@ Simple, focused scripts that demonstrate Nova Act's core capabilities. Each exam
 ├── nova_act_client/                        # Shared client wrapper for workflow configuration
 ├── nova_agents/                            # Nova Agent examples
 ├── qa/                                     # QA testing examples and utilities
-└── tool_use/                               # Tool use examples
+├── tool_use/                               # Tool use examples
+└── trajectory/                             # Trajectory replay examples
 ```
 
 ## Prerequisites
@@ -158,6 +159,12 @@ The `qa/` directory provides a `NovaActQa` extension class with typed assertions
 The `tool_use/` directory showcases Nova Act's integration with external tools.
 
 [Get Started with Tool Use →](tool_use/README.md)
+
+### Trajectory Replay
+
+The `trajectory/` directory demonstrates saving, replaying, and validating Nova Act trajectories.
+
+[Get Started with Trajectory Replay →](trajectory/README.md)
 
 ## Next Steps
 
