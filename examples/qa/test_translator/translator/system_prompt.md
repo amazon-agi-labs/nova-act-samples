@@ -46,6 +46,72 @@ These prompts will be executed by Nova Act's AI model to interact with a browser
 - Compound actions: "Click login and enter credentials" — split into separate steps
 - Ambiguous references: "Click the button" — which button?
 
+TEMPLATE VARIABLES:
+
+- Use ${extraction_key} syntax to reference previously extracted values
+- IMPORTANT: Always preserve the dollar sign ($) - use ${variable_name}, NOT {variable_name}
+- Works in both instruction prompts and validation expected values
+- Example: "Enter ${order_id} in the tracking field"
+- Example: expected value could be "Order ${order_id} confirmed"
+
+FUNCTION CALL STEPS - Recognize and parse custom function calls:
+    
+    **Identifying function call steps:**
+    - Steps containing phrases: "I call", "call function", "call the function", "call the method"
+    - Specify a function name (quoted or unquoted)
+    - May include parameters with "with" keyword
+    - May include result storage with: "store as", "save as", "store result as", "return as", "return is", "store it as", "save the result as"
+    
+    **Function call step format:**
+    ```json
+    {
+      "original_keyword": "Given|When|Then|And|But",
+      "original_text": "<original Gherkin step text>",
+      "function_call": {
+        "function_name": "function_name",
+        "parameters": {
+          "param1": "value1",
+          "param2": 123,
+          "param3": true
+        },
+        "storage_key": "variable_name"
+      }
+    }
+    ```
+    
+    **Parsing rules:**
+    - Extract function_name from the step (e.g., "calculate_discount", "user_service.create_user")
+    - Parse parameters into a dictionary with correct types (string, number, boolean)
+    - Extract storage_key if result storage is specified (null if not specified)
+    - Support dot notation for method calls (e.g., "user_service.create_user")
+    
+    **Examples:**
+    - "I call 'calculate_discount' with price 100 and discount_percent 20 and store as 'final_price'"
+      → function_name: "calculate_discount", parameters: {"price": 100, "discount_percent": 20}, storage_key: "final_price"
+    
+    - "call function 'generate_test_data' and save result as 'test_user'"
+      → function_name: "generate_test_data", parameters: {}, storage_key: "test_user"
+    
+    - "I call 'validate_response' with status_code 200"
+      → function_name: "validate_response", parameters: {"status_code": 200}, storage_key: null
+    
+    - "I call the method 'fetch_user_id' with email 'test@example.com' and return as 'user_id'"
+      → function_name: "fetch_user_id", parameters: {"email": "test@example.com"}, storage_key: "user_id"
+    
+    - "call 'lookup_customer' with phone '555-1234' and return is 'customer_id'"
+      → function_name: "lookup_customer", parameters: {"phone": "555-1234"}, storage_key: "customer_id"
+    
+    **Parameter parsing:**
+    - Parse parameter values to correct types: numbers as int/float, booleans as true/false, strings as strings
+    - Preserve variable references using ${variable_name} syntax in parameter values
+    - Example: "with amount ${item_price} and rate 0.08" → {"amount": "${item_price}", "rate": 0.08}
+
+DATATABLE INTERPRETATION:
+- When steps use words like "matching", "pattern", "include", "contains" with a datatable, treat table data as EXAMPLES
+- Don't check for exact matches - the table shows example patterns, not exhaustive lists
+- For validation steps with datatables, verify the presence of example items, not exact equality
+- For action steps with datatables, use the table data as input parameters
+
 NEGATION:
 
 Gherkin steps with "not", "should not", "isn't", etc. should use a positive statement with comparison "false":
@@ -62,10 +128,6 @@ Expand into multiple scenarios (one per example row). Substitute placeholders wi
 BACKGROUND STEPS:
 
 Prepend background steps to every scenario in the feature. They become regular steps with their original keywords. Maintain execution order: background steps always execute first.
-
-TEMPLATE VARIABLES:
-
-Use {extraction_key} syntax to reference previously extracted values in instruction prompts and expected values.
 
 DATATABLES:
 
@@ -101,5 +163,5 @@ When I capture the order confirmation number
 → extraction: prompt "The order confirmation number", string, key "order_id"
 
 Then the confirmation message should contain the order number
-→ validation: prompt "The confirmation message", substring check, expected "{order_id}"
+→ validation: prompt "The confirmation message", substring check, expected "${order_id}"
 ```

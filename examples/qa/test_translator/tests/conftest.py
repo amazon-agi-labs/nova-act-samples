@@ -1,34 +1,25 @@
 """Pytest configuration and fixtures for Nova Act tests."""
 
-import os
+import json
+import re
 import sys
 from pathlib import Path
 
 import pytest
 
-from examples.nova_act_client import NovaActClient
 from examples.qa.test_translator.config import AppConfig
 from examples.qa.test_translator.config.exceptions import ConfigurationError
 from examples.qa.test_translator.translator import translate_all_features
 
 
 def pytest_configure(config):
-    """Configure pytest with AppConfig and discover workflow definition."""
+    """Configure pytest with AppConfig."""
     try:
         config.app_config = AppConfig()  # type: ignore
     except ConfigurationError as e:
         # Print the error cleanly before pytest wraps it
         print(f"\n{e}", file=sys.stderr)
         pytest.exit("Configuration error - see message above", returncode=1)
-
-    # Discover (or create) the workflow definition once per session
-
-    s3_bucket_name = os.getenv("NOVA_ACT_S3_BUCKET_NAME", None)
-    client = NovaActClient()
-    client.discover_workflow_definition(
-        name=config.app_config.workflow_definition_name,
-        s3_bucket_name=s3_bucket_name,
-    )
 
 
 def pytest_sessionstart(session):
@@ -66,27 +57,45 @@ def pytest_sessionstart(session):
         pytest.exit(f"Translation failed: {e}", returncode=1)
 
 
-def collect_feature_files(features_dir: Path):
-    """Collect all JSON feature files for parametrization."""
-    json_files = list(features_dir.glob("*.json"))
+def collect_feature_scenarios(features_dir: Path):
+    """Collect all scenarios from all JSON feature files for parametrization.
+
+    Returns a list of (feature_file, scenario_index, test_id) tuples,
+    one per scenario across all feature files.
+    """
+    json_files = sorted(features_dir.glob("*.json"))
     if not json_files:
         return []
-    return [(json_file, json_file.stem) for json_file in json_files]
+
+    scenarios = []
+    for json_file in json_files:
+        with open(json_file) as f:
+            feature_data = json.load(f)
+
+        feature_name = json_file.stem
+        for idx, scenario in enumerate(feature_data.get("scenarios", [])):
+            scenario_name = scenario.get("name", f"scenario_{idx}")
+            # Sanitize scenario name for test ID
+            safe_scenario = re.sub(r"[^\w\s-]", "", scenario_name)
+            safe_scenario = re.sub(r"[-\s]+", "_", safe_scenario).lower()
+            test_id = f"{feature_name}::{safe_scenario}"
+            scenarios.append((json_file, idx, test_id))
+
+    return scenarios
 
 
 def pytest_generate_tests(metafunc):
-    """Dynamically generate tests for each JSON feature file."""
+    """Dynamically generate one test per scenario across all JSON feature files."""
     if "feature_file" in metafunc.fixturenames:
         app_config = metafunc.config.app_config
         features_dir = app_config.resolve_translated_feature_dir()
-        feature_files = collect_feature_files(features_dir)
+        scenarios = collect_feature_scenarios(features_dir)
 
-        if not feature_files:
+        if not scenarios:
             pytest.skip(f"No JSON files found in {features_dir}")
 
-        # Parametrize with feature file path and test ID
         metafunc.parametrize(
-            "feature_file,feature_name",
-            feature_files,
-            ids=[name for _, name in feature_files],
+            "feature_file,scenario_index,test_id",
+            scenarios,
+            ids=[test_id for _, _, test_id in scenarios],
         )

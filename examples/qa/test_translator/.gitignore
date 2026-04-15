@@ -5,3 +5,6 @@ features_translated/
 !.env.example
 .pytest_cache/
 reports/
+output/
+recordings/
+extracted_variables/

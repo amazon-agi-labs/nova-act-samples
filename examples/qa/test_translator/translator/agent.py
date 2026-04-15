@@ -12,6 +12,11 @@ from examples.qa.test_translator.translator.models import Feature
 BASE_PATH = Path(__file__).parent
 
 
+class TranslationError(Exception):
+    """Exception raised when feature translation fails."""
+    pass
+
+
 def load_agent_prompt() -> str:
     """Load system prompt from local directory."""
     prompt_path = BASE_PATH / "system_prompt.md"
@@ -51,35 +56,55 @@ def resolve_model_id(agent: Agent) -> str:
 def translate_feature_to_json(
     feature_path: Path, agent: Agent, tag_url_map: dict
 ) -> dict:
-    """Translate a single .feature file to JSON structure."""
+    """Translate a single .feature file to JSON structure.
+
+    Args:
+        feature_path: Path to the .feature file
+        agent: Strands agent for translation
+        tag_url_map: Mapping of tags to URLs
+
+    Returns:
+        Translated feature dictionary
+
+    Raises:
+        TranslationError: If translation or variable reference validation fails
+    """
     print(f"  Translating {feature_path.name}...")
 
-    # Parse Gherkin
-    gherkin_ast = parse_gherkin_file(feature_path)
+    try:
+        # Parse Gherkin
+        gherkin_ast = parse_gherkin_file(feature_path)
 
-    # Translate using Strands agent with structured output
-    ast_json = json.dumps(gherkin_ast, indent=2)
-    prompt = f"""Translate this Gherkin AST to JSON test structure.
+        # Translate using Strands agent with structured output
+        ast_json = json.dumps(gherkin_ast, indent=2)
+        prompt = f"""Translate this Gherkin AST to JSON test structure.
 
 File: {feature_path.name}
 
 Gherkin AST:
 {ast_json}"""
 
-    # Use structured_output_model for type-safe, validated response
-    result = agent(prompt)
-    test_feature_obj: Feature = result.structured_output
+        # Use structured_output_model for type-safe, validated response
+        result = agent(prompt)
+        test_feature_obj: Feature = result.structured_output
+        
+        if test_feature_obj is None:
+            raise TranslationError(f"Agent failed to produce structured output for {feature_path.name}")
 
-    # Add base_url from tags
-    test_feature_obj.base_url = resolve_test_url(test_feature_obj.tags, tag_url_map)
+        # Add base_url from tags
+        test_feature_obj.base_url = resolve_test_url(test_feature_obj.tags, tag_url_map)
 
-    # Add metadata
-    test_feature_obj.conversion_timestamp = datetime.now(UTC).isoformat()
-    test_feature_obj.source_file = feature_path.name
-    test_feature_obj.bedrock_model_id = resolve_model_id(agent)
+        # Add metadata
+        test_feature_obj.conversion_timestamp = datetime.now(UTC).isoformat()
+        test_feature_obj.source_file = feature_path.name
+        test_feature_obj.bedrock_model_id = resolve_model_id(agent)
 
-    # Convert Pydantic model to dict after all properties are set
-    return test_feature_obj.model_dump()
+        # Convert Pydantic model to dict after all properties are set
+        feature_dict = test_feature_obj.model_dump()
+
+        return feature_dict
+    except Exception as e:
+        raise
 
 
 def save_feature_json(feature_data: dict, output_dir: Path, feature_name: str):
@@ -112,7 +137,7 @@ def translate_all_features(
         ValueError: If configuration is invalid or no features found.
         FileNotFoundError: If feature directory doesn't exist.
     """
-    output_dir.mkdir(exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     # Validate input directory
     if not input_dir.exists() or not input_dir.is_dir():
