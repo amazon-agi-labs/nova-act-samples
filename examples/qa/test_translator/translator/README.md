@@ -37,6 +37,11 @@ python -m examples.qa.test_translator.translator.main \
 
 Tag mappings can also be set via `GHERKIN_TAG_*` environment variables. CLI `--tag` flags take precedence.
 
+Standalone translation is useful for:
+- Validating feature file syntax before running tests
+- Previewing translated JSON to check step classification
+- CI/CD pipelines that separate translation from test execution
+
 ### Programmatic
 
 ```python
@@ -60,6 +65,44 @@ The system prompt in `system_prompt.md` tells the agent how to interpret each Gh
 Tags and metadata are handled after the agent returns. Feature tags are matched against the provided `tag_url_map` to resolve the starting URL. Metadata like the source filename, conversion timestamp, and model ID are also attached at this stage.
 
 A single `Agent` instance is created per `translate_all_features()` call and reused across all feature files. Translated results are saved as JSON files to the provided output directory.
+
+## Key Classes
+
+The Pydantic models in `models.py` define the JSON schema for translated output. The hierarchy is:
+
+`Feature` → `TestScenario` → `TestStep` → one of `Extraction`, `Validation`, or `FunctionCall`
+
+### `Feature`
+
+Top-level model representing a translated `.feature` file.
+
+| Field | Purpose |
+|---|---|
+| `name` | Feature name from Gherkin |
+| `base_url` | Starting URL resolved from tag mapping |
+| `scenarios` | List of `TestScenario` |
+| `conversion_timestamp` | ISO 8601 timestamp of translation |
+| `source_file` | Original `.feature` filename |
+| `bedrock_model_id` | Model used for translation |
+
+### `TestStep`
+
+A single translated Gherkin step. Exactly one of the four fields must be set (enforced by a model validator):
+
+| Field | Type | When used |
+|---|---|---|
+| `instruction` | `str` | Browser action via `act()` |
+| `extraction` | `Extraction` | Extract and store a value via `expect().as_*()` |
+| `validation` | `Validation` | Assert a value via `expect().to_*()` |
+| `function_call` | `FunctionCall` | Call a custom Python function |
+
+### `Validation`
+
+| Field | Purpose |
+|---|---|
+| `prompt` | `NovaActQa` extraction prompt |
+| `expected` | Expected value to compare against |
+| `comparison` | Comparison type: `equal`, `contain`, `match`, `greater_than`, `less_than`, `true`, `false`, etc. |
 
 ## Notes
 

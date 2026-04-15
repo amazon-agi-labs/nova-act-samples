@@ -29,7 +29,8 @@ class BaseConfig(BaseSettings):
 
     @validate_app_config
     def __init__(self, **data):
-        load_dotenv(DOTENV_PATH, override=True, encoding=DOTENV_ENCODING)
+        # override=False allows programmatically set environment variables to take precedence
+        load_dotenv(DOTENV_PATH, override=False, encoding=DOTENV_ENCODING)
         super().__init__(**data)
 
 
@@ -76,10 +77,31 @@ class AppConfig(BaseConfig):
         description="Directory for translated JSON test files",
     )
 
+    extracted_variables_dir: Path = Field(
+        default=Path("extracted_variables"),
+        alias="EXTRACTED_VARIABLES_DIR",
+        description="Directory for storing extracted variable JSON files",
+    )
+
+    custom_functions_file: Path = Field(
+        default=Path("custom_functions_sample.py"),
+        alias="CUSTOM_FUNCTIONS_FILE",
+        description="Path to Python file containing custom test functions",
+    )
+
     default_test_url: str | None = Field(
         default=None,
         alias="DEFAULT_TEST_URL",
         description="Default URL when no tag mapping exists",
+    )
+
+    # Video Recording Settings
+    enable_video_recording: bool = Field(
+        default=False, alias="ENABLE_VIDEO_RECORDING", description="Enable video recording of test executions"
+    )
+
+    video_recording_dir: Path = Field(
+        default=Path("./recordings"), alias="VIDEO_RECORDING_DIR", description="Directory to store video recordings"
     )
 
     def get_tag_url_mapping(self) -> Dict[str, str]:
@@ -106,3 +128,21 @@ class AppConfig(BaseConfig):
         if self.translated_feature_dir.is_absolute():
             return self.translated_feature_dir
         return (BASE_PATH / self.translated_feature_dir).resolve()
+
+    def resolve_extracted_variables_dir(self) -> Path:
+        """Resolve extracted variables directory to absolute path."""
+        if self.extracted_variables_dir.is_absolute():
+            return self.extracted_variables_dir
+        return (BASE_PATH / self.extracted_variables_dir).resolve()
+
+    def resolve_custom_functions_file(self) -> Path:
+        """Resolve custom functions file to absolute path."""
+        if self.custom_functions_file.is_absolute():
+            return self.custom_functions_file
+        return (BASE_PATH / self.custom_functions_file).resolve()
+
+    def resolve_video_recording_dir(self) -> Path:
+        """Resolve video recording directory to absolute path."""
+        if self.video_recording_dir.is_absolute():
+            return self.video_recording_dir
+        return (BASE_PATH / self.video_recording_dir).resolve()

@@ -153,12 +153,19 @@ class NovaActClient:
             )
 
     @staticmethod
-    def get_workflow_kwargs() -> dict:
+    def get_workflow_kwargs(
+        workflow_definition_name: str | None = None,
+    ) -> dict:
         """Return kwargs for the Nova Act SDK Workflow given the environment configuration.
 
         Reads NOVA_ACT_API_KEY, NOVA_ACT_WORKFLOW_DEFINITION_NAME, and NOVA_ACT_MODEL_ID
         from the environment. API key takes precedence — when set, workflow definition
         discovery is skipped. Model ID defaults to NovaActClient.DEFAULT_MODEL_ID.
+
+        Args:
+            workflow_definition_name: Override the workflow definition name. When provided,
+                this name is used instead of the NOVA_ACT_WORKFLOW_DEFINITION_NAME env var.
+                Useful for per-test workflow definitions.
         """
         api_key = os.getenv("NOVA_ACT_API_KEY", None)
         model_id = os.getenv("NOVA_ACT_MODEL_ID", NovaActClient.DEFAULT_MODEL_ID)
@@ -168,15 +175,15 @@ class NovaActClient:
         if api_key:
             kwargs["nova_act_api_key"] = api_key
         else:
-            workflow_definition_name = os.getenv(
+            name = workflow_definition_name or os.getenv(
                 "NOVA_ACT_WORKFLOW_DEFINITION_NAME",
                 NovaActClient.DEFAULT_WORKFLOW_NAME,
             )
             s3_bucket_name = os.getenv("NOVA_ACT_S3_BUCKET_NAME", None)
             client = NovaActClient()
             client.discover_workflow_definition(
-                name=workflow_definition_name, s3_bucket_name=s3_bucket_name
+                name=name, s3_bucket_name=s3_bucket_name
             )
-            kwargs["workflow_definition_name"] = workflow_definition_name
+            kwargs["workflow_definition_name"] = name
 
         return kwargs

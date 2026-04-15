@@ -1,127 +1,136 @@
 """Main test runner for executing Nova Act tests from JSON feature files."""
 
 import json
-import os
+import re
 from pathlib import Path
 
 import pytest
-from nova_act import Workflow
 
 from examples.nova_act_client import NovaActClient
-from examples.qa.nova_act_qa import NovaActQa
 from examples.qa.test_translator.translator.models import Feature
+from examples.qa.test_translator.utils.execution import execute_scenario_impl
 
 
-def execute_scenario(scenario, base_url: str, workflow_name: str, headless: bool):
-    """Execute a single test scenario with Nova Act by iterating over the scenario's steps."""
-    scenario_name = scenario.name
-    steps = scenario.steps
+def execute_scenario(
+    scenario,
+    base_url: str,
+    workflow_name: str,
+    functions_file: Path,
+    feature_data: dict,
+    app_config,
+):
+    """Execute a single test scenario with Nova Act by iterating over the scenario's steps.
 
-    print(f"\n{'=' * 70}")
-    print(f"Scenario: {scenario_name}")
-    print("=" * 70)
+    This is a thin wrapper around execute_scenario_impl from utils.execution that adapts
+    it for pytest by converting exceptions to pytest.fail() calls.
 
-    extracted_values = {}
+    Args:
+        scenario: The test scenario to execute
+        base_url: The base URL for the test
+        workflow_name: The Nova Act workflow definition name
+        functions_file: Path to Python file containing custom functions
+        feature_data: Feature dictionary for function call validation
+        app_config: Application configuration object
 
-    # Start Nova Act Workflow for this scenario
-    with Workflow(
-        workflow_definition_name=workflow_name,
-        model_id=os.getenv("NOVA_ACT_MODEL_ID", NovaActClient.DEFAULT_MODEL_ID),
-    ) as workflow:
-        with NovaActQa(
-            starting_page=base_url,
-            workflow=workflow,
-            headless=headless,
-            tty=False,  # For pytest log compatibility
-        ) as nova:
-            # Execute each step
-            for step_idx, step in enumerate(steps, 1):
-                keyword = step.original_keyword
-                text = step.original_text
-
-                print(f"\n  Step {step_idx}: {keyword} {text}")
-
-                try:
-                    if step.instruction:
-                        instruction = step.instruction
-                        print(f"    → Action: {instruction}")
-                        nova.act(instruction)
-                        print("    ✓ Success")
-
-                    elif step.extraction:
-                        extraction = step.extraction
-                        prompt = extraction.prompt
-                        extraction_type = extraction.extraction_type
-                        extraction_key = extraction.extraction_key
-
-                        print(f"    → Extract ({extraction_type}): {prompt}")
-                        print(f"    → Store as: {extraction_key}")
-
-                        value = getattr(nova.expect(prompt), f"as_{extraction_type}")()
-
-                        extracted_values[extraction_key] = value
-                        print(f"    ✓ Extracted: {value}")
-
-                    elif step.validation:
-                        validation = step.validation
-                        prompt = validation.prompt
-                        expected = validation.expected
-                        comparison = validation.comparison
-
-                        print(f"    → Validate ({comparison}): {prompt}")
-                        if comparison not in ("true", "false"):
-                            print(f"    → Expected: {expected}")
-
-                        # Map comparison to Nova Act QA method name
-                        if comparison in ("equal", "contain", "match"):
-                            method_name = f"to_{comparison}"
-                        else:
-                            method_name = f"to_be_{comparison}"
-
-                        expectation = nova.expect(prompt)
-                        assert_method = getattr(expectation, method_name)
-
-                        if comparison in ("true", "false"):
-                            actual = assert_method()
-                        else:
-                            actual = assert_method(expected)
-
-                        print("    ✓ Validation passed")
-                        print(f"    → Actual: {actual}")
-
-                except AssertionError as e:
-                    print(f"    ✗ Validation failed: {e}")
-                    pytest.fail(str(e))
-                except Exception as e:
-                    print(f"    ✗ Error: {str(e)}")
-                    pytest.fail(f"Step failed: {str(e)}")
-
-    print(f"\n  ✓ Scenario PASSED: {scenario_name}")
-
-
-def test_feature(feature_file: Path, feature_name: str, request):
+    Returns:
+        Dictionary of all extracted variables from the scenario
     """
-    Single pytest test that executes all JSON-defined features (see translator)
-    Each scenario from each JSON file becomes a separate test.
-    See conftest.py::pytest_generate_tests() for details on how the tests are generated.
-    See execute_scenario() for details on how the scenarios are executed.
+
+    def log_callback(message: str, level: str = "info"):
+        """Pytest-compatible logging callback"""
+        if level == "error":
+            print(f"    ✗ {message}")
+        else:
+            # Format to match original pytest output style
+            if message.startswith("Step "):
+                print(f"\n  {message}")
+            elif message.startswith("  →") or message.startswith("  ✓"):
+                print(f"  {message}")
+            elif message.startswith("Scenario:") or message == "=" * 60:
+                print(f"\n{message}")
+            else:
+                print(f"    {message}")
+
+    try:
+        # Call the consolidated execution engine
+        return execute_scenario_impl(
+            scenario=scenario,
+            base_url=base_url,
+            workflow_name=workflow_name,
+            functions_file=functions_file,
+            feature_data=feature_data,
+            log_callback=log_callback,
+            config=app_config,
+        )
+    except AssertionError as e:
+        pytest.fail(str(e))
+    except Exception as e:
+        pytest.fail(f"Scenario failed: {str(e)}")
+
+
+def test_feature(feature_file: Path, scenario_index: int, test_id: str, request):
+    """Execute a single scenario from a JSON feature file.
+
+    Each scenario is parametrized as its own test by conftest.py::pytest_generate_tests().
+    Each scenario gets its own workflow definition name for per-test traceability
+    in the Nova Act console and S3 logs.
+    See execute_scenario() for details on how scenarios are executed.
     """
     app_config = request.config.app_config
-    workflow_name = app_config.workflow_definition_name
-
-    print(f"\n{'=' * 70}")
-    print(f"Feature: {feature_name}")
-    print("=" * 70)
 
     # Read feature JSON file
     with open(feature_file) as f:
         feature_data = json.load(f)
     feature = Feature.model_validate(feature_data)
 
-    print(f"Name:      {feature.name}")
-    print(f"Base URL:  {feature.base_url}")
-    print(f"Scenarios: {len(feature.scenarios)}")
+    scenario = feature.scenarios[scenario_index]
 
-    # Execute each scenario
-    for scenario in feature.scenarios:
-        execute_scenario(scenario, feature.base_url, workflow_name, app_config.headless)
+    # Derive a per-scenario workflow definition name for traceability.
+    # API limit: 40 chars, pattern [a-zA-Z0-9_-]
+    # Budget: "tt-" (3) + feature (18) + "-" (1) + scenario (18) = 40
+    feature_slug = re.sub(r"[^\w]+", "-", feature_file.stem).strip("-").lower()
+    scenario_slug = re.sub(r"[^\w]+", "-", scenario.name).strip("-").lower()
+    workflow_name = f"tt-{feature_slug[:18]}-{scenario_slug[:18]}"
+
+    # Discover or create the workflow definition for this scenario
+    NovaActClient.get_workflow_kwargs(workflow_definition_name=workflow_name)
+
+    print(f"\n{'=' * 70}")
+    print(f"Feature:  {feature.name}")
+    print(f"Scenario: {scenario.name}")
+    print(f"Workflow: {workflow_name}")
+    print(f"Base URL: {feature.base_url}")
+    print("=" * 70)
+
+    # Load config paths
+    variable_output_dir = app_config.resolve_extracted_variables_dir()
+    functions_file = app_config.resolve_custom_functions_file()
+
+    extracted_vars = execute_scenario(
+        scenario,
+        feature.base_url,
+        workflow_name,
+        functions_file,
+        feature_data,
+        app_config,
+    )
+
+    # Save extracted variables if any
+    if extracted_vars:
+        output_dir = variable_output_dir
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        safe_name = re.sub(r"[^\w\s-]", "", scenario.name)
+        safe_name = re.sub(r"[-\s]+", "_", safe_name).lower()
+
+        filepath = output_dir / f"{safe_name}.json"
+        output_data = {
+            "feature": feature.name,
+            "scenario": scenario.name,
+            "variables": extracted_vars,
+        }
+
+        with open(filepath, "w") as f:
+            json.dump(output_data, f, indent=2, default=str)
+
+        print(f"\n  → Variables saved to: {filepath}")
