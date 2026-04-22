@@ -82,7 +82,7 @@ class AppiumInstanceOptions(BaseModel):
     """Perform a complete reset (delete and reinstall app)."""
 
     # Advanced Options
-    additional_capabilities: dict[str, str | int | bool] | None = None
+    additional_capabilities: dict[str, Any] | None = None
     """Additional Appium capabilities to pass to the driver."""
 
     # Recording

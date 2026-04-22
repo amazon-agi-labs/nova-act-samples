@@ -18,6 +18,7 @@ from nova_act.tools.browser.interface.browser import (
     BrowserObservation,
 )
 from nova_act.tools.browser.interface.types.click_types import ClickOptions
+from nova_act.tools.browser.interface.types.dimensions_dict import DimensionsDict
 from nova_act.tools.browser.interface.types.scroll_types import ScrollDirection
 from nova_act.types.api.step import BboxTLBR
 from nova_act.util.logging import setup_logging
@@ -39,6 +40,7 @@ from examples.actuation.mobile.nova_act_mobile.actuation.util.mobile_click impor
     mobile_click,
 )
 from examples.actuation.mobile.nova_act_mobile.actuation.util.mobile_observation import (
+    get_screen_dimensions,
     get_ui_hierarchy,
     parse_ui_hierarchy,
     take_mobile_screenshot,
@@ -61,6 +63,7 @@ _MAX_OBSERVATION_RETRIES = 3
 _SESSION_RECOVERY_BACKOFF_S = 3.0
 _APP_URL_PREFIX = "https://"
 _DEEP_LINK_PATH = "/deeplink/"
+_ACTIVITY_PATH = "/activity/"
 
 
 class MobileActuator(BrowserActuatorBase, AppiumDriverManagerBase):
@@ -256,31 +259,45 @@ class MobileActuator(BrowserActuatorBase, AppiumDriverManagerBase):
         return None
 
     @staticmethod
-    def app_url(app_identifier: str, deep_link: str | None = None) -> str:
+    def app_url(
+        app_identifier: str,
+        deep_link: str | None = None,
+        activity: str | None = None,
+    ) -> str:
         """Build a URL for use with NovaAct's starting_page or go_to_url.
 
         The Nova Act SDK requires valid https:// URLs for both starting_page and
         go_to_url. This method encodes a mobile app identifier (and optional deep
-        link) into an https:// URL that the actuator knows how to decode and
-        dispatch to the correct Appium action.
+        link or activity) into an https:// URL that the actuator knows how to
+        decode and dispatch to the correct Appium action.
 
         Args:
             app_identifier: App package name (Android) or bundle ID (iOS).
                 Example: "com.android.chrome", "com.apple.mobilesafari"
             deep_link: Optional deep link URL to open within the app.
                 Example: "myapp://screen/detail?id=123"
+            activity: Optional Android activity to launch via
+                ``mobile: startActivity``. iOS has no activity concept —
+                use deep links instead.
+                Example: "com.example.app.Activities.DetailActivity"
 
         Returns:
             URL for use with starting_page or go_to_url:
-            - App launch: "https://<app_identifier>"
-            - Deep link:  "https://<app_identifier>/deeplink/<url_encoded_deep_link>"
+            - App launch:      "https://<app_identifier>"
+            - Deep link:       "https://<app_identifier>/deeplink/<encoded>"
+            - Activity launch: "https://<app_identifier>/activity/<encoded>"
 
         Examples:
-            nova = NovaAct(starting_page=MobileActuator.app_url("com.tour.pgatour"))
-            nova.go_to_url(MobileActuator.app_url("com.tour.pgatour", deep_link="pgatour://scores"))
+            nova = NovaAct(starting_page=MobileActuator.app_url("com.example.app"))
+            nova.go_to_url(MobileActuator.app_url("com.example.app", deep_link="myapp://scores"))
+            nova.go_to_url(MobileActuator.app_url("com.example.app", activity=".DetailActivity"))
         """
+        if deep_link and activity:
+            raise ValueError("deep_link and activity are mutually exclusive")
         if deep_link:
             return f"{_APP_URL_PREFIX}{app_identifier}{_DEEP_LINK_PATH}{quote(deep_link, safe='')}"
+        if activity:
+            return f"{_APP_URL_PREFIX}{app_identifier}{_ACTIVITY_PATH}{quote(activity, safe='')}"
         return f"{_APP_URL_PREFIX}{app_identifier}"
 
     def go_to_url(self, url: str) -> JSONType:
@@ -302,9 +319,26 @@ class MobileActuator(BrowserActuatorBase, AppiumDriverManagerBase):
             app_identifier, _, encoded_deep_link = path.partition(_DEEP_LINK_PATH)
             deep_link = unquote(encoded_deep_link)
             open_deep_link(self.driver, deep_link, app_identifier)
+        elif _ACTIVITY_PATH in path:
+            # Android-only: launch a specific exported activity via
+            # mobile: startActivity. iOS has no activity concept —
+            # use deep links instead.
+            app_identifier, _, encoded_activity = path.partition(_ACTIVITY_PATH)
+            activity = unquote(encoded_activity)
+            self.driver.execute_script(
+                "mobile: startActivity",
+                {
+                    "intent": f"{app_identifier}/{activity}",
+                },
+            )
         else:
             launch_app(self.driver, path)
         return None
+
+    def get_viewport_size(self) -> DimensionsDict:
+        """Return the current screen dimensions."""
+        dims = get_screen_dimensions(self.driver)
+        return {"width": dims["windowWidth"], "height": dims["windowHeight"]}
 
     def _return(self, value: str | None) -> JSONType:
         """Complete execution and return a value.
