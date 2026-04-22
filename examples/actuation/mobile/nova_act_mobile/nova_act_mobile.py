@@ -38,6 +38,9 @@ class NovaActMobile(NovaAct):
         app_activity: Android launch activity (e.g. ``".MainActivity"``).
         bundle_id: iOS bundle identifier.
         app_path: Path to ``.apk`` / ``.ipa`` for Device Farm upload.
+        deep_link: Deep link URL to open at launch (e.g. ``"myapp://screen"``).
+        additional_capabilities: Extra Appium capabilities merged into the session
+            (e.g. ``{"appium:autoLaunch": False, "appium:noReset": True}``).
         mode: Execution mode — ``"device-farm"`` (default) or ``"local"``.
         device_name: Appium device name (local mode, default ``"emulator-5554"``).
         platform_version: OS version string (local mode).
@@ -67,6 +70,9 @@ class NovaActMobile(NovaAct):
         app_activity: str | None = None,
         bundle_id: str | None = None,
         app_path: str | None = None,
+        # Navigation
+        deep_link: str | None = None,
+        additional_capabilities: dict[str, Any] | None = None,
         # Mode
         mode: Literal["device-farm", "local"] = "device-farm",
         # Local Appium options
@@ -111,6 +117,7 @@ class NovaActMobile(NovaAct):
                 upload_config=upload_config,
                 project_arn=project_arn,
                 device_arn=device_arn,
+                additional_capabilities=additional_capabilities,
             )
         elif mode == "local":
             options = AppiumInstanceOptions(
@@ -122,6 +129,7 @@ class NovaActMobile(NovaAct):
                 app_activity=app.app_activity,
                 bundle_id=app.bundle_id,
                 app_path=app_path,
+                additional_capabilities=additional_capabilities,
             )
             actuator = MobileActuator(appium_options=options)
         else:
@@ -132,7 +140,10 @@ class NovaActMobile(NovaAct):
         kwargs.setdefault("ignore_screen_dims_check", True)
 
         super().__init__(
-            starting_page=MobileActuator.app_url(app.app_identifier),
+            starting_page=MobileActuator.app_url(
+                app.app_identifier,
+                deep_link=deep_link,
+            ),
             actuator=actuator,
             workflow=workflow,
             **kwargs,

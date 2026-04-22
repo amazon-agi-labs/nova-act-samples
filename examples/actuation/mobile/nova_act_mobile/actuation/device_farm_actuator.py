@@ -52,6 +52,7 @@ class DeviceFarmActuator(MobileActuator):
         project_arn: str | None = None,
         device_arn: str | None = None,
         adb_exec_timeout_ms: int = _DEFAULT_ADB_EXEC_TIMEOUT_MS,
+        additional_capabilities: dict[str, Any] | None = None,
     ):
         """Initialize Device Farm actuator.
 
@@ -65,6 +66,9 @@ class DeviceFarmActuator(MobileActuator):
             project_arn: Device Farm project ARN (optional, auto-discovers if None)
             device_arn: Device Farm device ARN (optional, auto-discovers if None)
             adb_exec_timeout_ms: ADB command timeout in milliseconds (default: 60000)
+            additional_capabilities: Extra Appium capabilities merged into the session.
+                User-provided values override defaults. Example:
+                ``{"appium:autoLaunch": False, "appium:noReset": True}``.
         """
         # Intentionally skip super().__init__() — we don't have AppiumInstanceOptions
         # until Device Farm gives us an endpoint in start().
@@ -73,6 +77,7 @@ class DeviceFarmActuator(MobileActuator):
         self._project_arn = project_arn
         self._device_arn = device_arn
         self._adb_exec_timeout_ms = adb_exec_timeout_ms
+        self._additional_capabilities = additional_capabilities or {}
         self._df_client = DeviceFarmClient()
         self._session_result: DeviceFarmSessionResult | None = None
 
@@ -88,6 +93,7 @@ class DeviceFarmActuator(MobileActuator):
             "auto_launch": False,
             "additional_capabilities": {
                 "appium:adbExecTimeout": self._adb_exec_timeout_ms,
+                **self._additional_capabilities,
             },
         }
 
