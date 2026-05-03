@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Persistence Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+            padding: 40px;
+            max-width: 600px;
+            width: 90%;
+        }
+
+        h1 {
+            font-size: 1.8em;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #1a1a2e;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 24px;
+        }
+
+        /* Login form */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: #444;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #4a6cf7;
+            box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1);
+        }
+
+        .btn {
+            padding: 10px 24px;
+            font-size: 1em;
+            font-weight: 500;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-primary {
+            background: #4a6cf7;
+            color: white;
+            width: 100%;
+            padding: 12px;
+            margin-top: 8px;
+        }
+
+        .btn-primary:hover { background: #3b5de7; }
+
+        .btn-secondary {
+            background: #e8ecf1;
+            color: #333;
+        }
+
+        .btn-secondary:hover { background: #dce1e8; }
+
+        .btn-danger {
+            background: #f1e8e8;
+            color: #c0392b;
+        }
+
+        .btn-danger:hover { background: #e8d5d5; }
+
+        .error-msg {
+            color: #c0392b;
+            font-size: 0.9em;
+            margin-top: 8px;
+            display: none;
+        }
+
+        /* Dashboard */
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .welcome {
+            font-size: 1.1em;
+            color: #666;
+        }
+
+        .cards {
+            display: grid;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: #f8f9fb;
+            border-radius: 8px;
+            padding: 20px;
+            border-left: 4px solid #4a6cf7;
+        }
+
+        .card h3 {
+            font-size: 1em;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #1a1a2e;
+        }
+
+        .card p {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .prefs-status {
+            margin-top: 16px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 0.9em;
+        }
+
+        .prefs-saved {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-left: 4px solid #4caf50;
+        }
+
+        .prefs-not-saved {
+            background: #fff3e0;
+            color: #e65100;
+            border-left: 4px solid #ff9800;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="loginView" style="display: none;">
+        <h1>Sign In</h1>
+        <p class="subtitle">Enter any credentials to continue.</p>
+
+        <form id="loginForm" onsubmit="handleLogin(event)">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username"
+                       placeholder="Enter a username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password"
+                       placeholder="Enter any password" required>
+            </div>
+            <p class="error-msg" id="errorMsg">Please fill in both fields.</p>
+            <button type="submit" class="btn btn-primary">Sign In</button>
+        </form>
+    </div>
+
+    <div class="container" id="dashboardView" style="display: none;">
+        <div class="dashboard-header">
+            <div>
+                <h1>Dashboard</h1>
+                <p class="welcome">Welcome back, <span id="displayName"></span></p>
+            </div>
+            <button class="btn btn-danger" onclick="handleSignOut()">Sign Out</button>
+        </div>
+
+        <div class="cards">
+            <div class="card">
+                <h3>Recent Activity</h3>
+                <p>3 workflows completed in the last 24 hours.
+                   Average duration: 45 seconds per run.</p>
+            </div>
+            <div class="card">
+                <h3>Session Info</h3>
+                <p>Logged in since <span id="loginTime"></span>.
+                   Session token stored as a browser cookie.</p>
+            </div>
+            <div class="card">
+                <h3>Storage Status</h3>
+                <p id="storageStatus">Checking localStorage state...</p>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button class="btn btn-secondary" id="savePrefsBtn"
+                    onclick="handleSavePreferences()">
+                Save Preferences
+            </button>
+            <button class="btn btn-secondary" id="clearPrefsBtn"
+                    onclick="handleClearPreferences()" style="display: none;">
+                Clear Preferences
+            </button>
+        </div>
+
+        <div id="prefsStatus"></div>
+    </div>
+
+    <script>
+        function getCookie(name) {
+            var match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+            return match ? decodeURIComponent(match[2]) : null;
+        }
+
+        function setCookie(name, value, maxAge) {
+            document.cookie = name + '=' + encodeURIComponent(value)
+                + '; path=/; max-age=' + maxAge + '; SameSite=Lax';
+        }
+
+        function deleteCookie(name) {
+            document.cookie = name + '=; path=/; max-age=0';
+        }
+
+        function showDashboard(username, loginTime) {
+            document.getElementById('displayName').textContent = username;
+            document.getElementById('loginTime').textContent =
+                new Date(loginTime).toLocaleString();
+            document.getElementById('loginView').style.display = 'none';
+            document.getElementById('dashboardView').style.display = 'block';
+            renderPreferencesStatus();
+        }
+
+        function showLogin() {
+            document.getElementById('dashboardView').style.display = 'none';
+            document.getElementById('loginView').style.display = 'block';
+        }
+
+        function handleLogin(event) {
+            event.preventDefault();
+            var username = document.getElementById('username').value.trim();
+            var password = document.getElementById('password').value.trim();
+
+            if (!username || !password) {
+                document.getElementById('errorMsg').style.display = 'block';
+                return;
+            }
+
+            var now = new Date().toISOString();
+
+            setCookie('session_token', username + '-authenticated', 86400);
+
+            localStorage.setItem('user_profile', JSON.stringify({
+                username: username,
+                login_time: now,
+                theme: 'default'
+            }));
+
+            showDashboard(username, now);
+        }
+
+        function handleSignOut() {
+            deleteCookie('session_token');
+            localStorage.removeItem('user_profile');
+            localStorage.removeItem('user_preferences');
+            showLogin();
+        }
+
+        function handleSavePreferences() {
+            localStorage.setItem('user_preferences', JSON.stringify({
+                notifications: true,
+                language: 'en',
+                dashboard_layout: 'grid',
+                saved_at: new Date().toISOString()
+            }));
+            renderPreferencesStatus();
+        }
+
+        function handleClearPreferences() {
+            localStorage.removeItem('user_preferences');
+            renderPreferencesStatus();
+        }
+
+        function renderPreferencesStatus() {
+            var prefs = localStorage.getItem('user_preferences');
+            var statusEl = document.getElementById('prefsStatus');
+            var saveBtnEl = document.getElementById('savePrefsBtn');
+            var clearBtnEl = document.getElementById('clearPrefsBtn');
+            var storageEl = document.getElementById('storageStatus');
+
+            if (prefs) {
+                var parsed = JSON.parse(prefs);
+                statusEl.innerHTML = '<div class="prefs-status prefs-saved">'
+                    + 'Preferences saved to localStorage. '
+                    + 'Layout: ' + parsed.dashboard_layout
+                    + ', Language: ' + parsed.language
+                    + ', Notifications: ' + parsed.notifications
+                    + '</div>';
+                saveBtnEl.style.display = 'none';
+                clearBtnEl.style.display = 'inline-block';
+                storageEl.textContent = 'localStorage has user_profile and user_preferences ('
+                    + Object.keys(parsed).length + ' preference keys).';
+            } else {
+                statusEl.innerHTML = '<div class="prefs-status prefs-not-saved">'
+                    + 'No preferences saved yet. Click "Save Preferences" to store '
+                    + 'settings in localStorage.</div>';
+                saveBtnEl.style.display = 'inline-block';
+                clearBtnEl.style.display = 'none';
+                storageEl.textContent = 'localStorage has user_profile only. '
+                    + 'No user_preferences key found.';
+            }
+        }
+
+        function init() {
+            var token = getCookie('session_token');
+            var profile = localStorage.getItem('user_profile');
+
+            if (token && profile) {
+                var parsed = JSON.parse(profile);
+                showDashboard(parsed.username, parsed.login_time);
+            } else {
+                deleteCookie('session_token');
+                localStorage.removeItem('user_profile');
+                localStorage.removeItem('user_preferences');
+                showLogin();
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

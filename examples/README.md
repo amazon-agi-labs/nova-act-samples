@@ -17,6 +17,7 @@ Simple, focused scripts that demonstrate Nova Act's core capabilities. Each exam
 ├── nova_act_client/                        # Shared client wrapper for workflow configuration
 ├── nova_agents/                            # Nova Agent examples
 ├── qa/                                     # QA testing examples and utilities
+├── session_persistence/                    # Session persistence examples
 ├── tool_use/                               # Tool use examples
 └── trajectory/                             # Trajectory replay examples
 ```
@@ -153,6 +154,12 @@ The `nova_agents/` directory demonstrates how to use Nova Act with the Nova API 
 The `qa/` directory provides a `NovaActQa` extension class with typed assertions and extraction, along with examples for basic QA patterns and mobile testing via AWS Device Farm.
 
 [Get Started with QA →](qa/README.md)
+
+### Session Persistence
+
+The `session_persistence/` directory demonstrates the Nova Act SDK's [browser session persistence](https://github.com/aws/nova-act#persisting-browser-sessions) features, saving and restoring session state across runs using local files, S3, or [AgentCore browser profiles](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/browser-profiles.html).
+
+[Get Started with Session Persistence →](session_persistence/README.md)
 
 ### Tool Use
 
