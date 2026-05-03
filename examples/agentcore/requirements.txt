@@ -1,2 +1,2 @@
 -r ../requirements.txt
-bedrock-agentcore~=1.2.0
+bedrock-agentcore
