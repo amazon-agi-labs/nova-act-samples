@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Scroll And Extract</title>
+    <style>
+        :root { --ink:#10243a; --line:#cfd8e3; --accent:#0b6; --muted:#5a6b7d; }
+        * { box-sizing: border-box; }
+        body { margin:0; font-family: Arial, sans-serif; color:var(--ink); }
+        header.site { padding:14px 18px; border-bottom:1px solid var(--line); font-weight:700; }
+        main { max-width:720px; margin:0 auto; padding:18px; }
+
+        .field { padding:6px 0; }
+        .field .label { font-size:13px; letter-spacing:0.04em; text-transform:uppercase;
+            color:var(--muted); font-weight:700; }
+        .field .value { font-size:30px; font-weight:800; margin-top:4px; }
+
+        /* The map graphic is tall enough to push the bottom field below the fold,
+           so the trail name (top) and trail status (bottom) cannot both be on
+           screen at once. Reaching every value takes one scroll down. */
+        .map-graphic { height:900px; margin:18px 0; border:1px solid var(--line); border-radius:12px;
+            background:linear-gradient(180deg,#e9f3ee,#dbe9f5); display:flex;
+            align-items:center; justify-content:center; color:#7a93a8; font-size:18px; }
+    </style>
+</head>
+<body>
+    <header class="site">Trailhead</header>
+    <main>
+        <div class="field">
+            <div class="label">Trail Name</div>
+            <div class="value" id="trailName">Eagle Ridge Trail</div>
+        </div>
+
+        <div class="field">
+            <div class="label">Distance</div>
+            <div class="value" id="distance">4.2 miles</div>
+        </div>
+
+        <div class="map-graphic">[ trail map graphic ]</div>
+
+        <div class="field">
+            <div class="label">Trail Status</div>
+            <div class="value" id="status">Open</div>
+        </div>
+    </main>
+</body>
+</html>

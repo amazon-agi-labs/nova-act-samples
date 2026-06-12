@@ -12,6 +12,7 @@ Demonstrates browser actuation capabilities in Nova Act. The SDK natively handle
 ├── file_input.py        # File upload actuation
 ├── hover.py             # Hover actuation steering
 ├── range_input.py       # Range slider actuation
+├── scroll_extract.py    # Scroll and extract via a single act_get
 ├── select.py            # Native dropdown actuation
 └── static/
     ├── click.html       # Click test page
@@ -19,6 +20,7 @@ Demonstrates browser actuation capabilities in Nova Act. The SDK natively handle
     ├── file_input.html  # File upload test page
     ├── hover.html       # Hover test page
     ├── range_input.html # Range slider test page
+    ├── scroll_extract.html # Scroll and extract test page
     └── select.html      # Native dropdown test page
 ```
 
@@ -111,6 +113,19 @@ python -m examples.actuation.browser.color_input
 - Uses standard `nova.act()` calls and relies on the SDK's built-in support to handle controlling color inputs
 - If a color input is clicked, [`agent_click` detects](https://github.com/aws/nova-act/blob/df800f8d45bccd9bb5fea1d60954c6b6855e530f/src/nova_act/tools/browser/default/util/agent_click.py#L64) the element type and [raises an `AgentRedirectError`](https://github.com/aws/nova-act/blob/df800f8d45bccd9bb5fea1d60954c6b6855e530f/src/nova_act/tools/browser/default/util/agent_click.py#L175-L178) with a `#RRGGBB` format hint
 - [`agent_type` checks](https://github.com/aws/nova-act/blob/df800f8d45bccd9bb5fea1d60954c6b6855e530f/src/nova_act/tools/browser/default/util/agent_type.py#L96-L98) if the target element is an `<input type="color">`, and calls [`handle_color_input`](https://github.com/aws/nova-act/blob/df800f8d45bccd9bb5fea1d60954c6b6855e530f/src/nova_act/tools/browser/default/util/agent_type.py#L135-L154) which validates the hex format and sets `element.value`
+
+### scroll_extract.py - Scroll And Extract
+
+Demonstrates extracting several pieces of information that span content taller than the viewport. A single `act_get()` is given a prompt and a schema with one field per value to gather — the agent works through the content, collects each value, and returns them together. This is a useful pattern for large extraction tasks or QA automation, any time you want to pull or validate multiple values in one call when they aren't all visible at the same time.
+
+```bash
+python -m examples.actuation.browser.scroll_extract
+```
+
+**Implementation Details:**
+- The test page ([`static/scroll_extract.html`](static/scroll_extract.html)) shows trail details with a large map graphic between them, so the top field (trail name) and bottom field (trail status) can't both be on screen at once and reaching every value requires scrolling down
+- Defines a `TrailInfo` Pydantic model with one field per value to extract
+- A single `nova.act_get()` with the model's `model_json_schema()` gathers all values at once, parsed with `model_validate(result.parsed_response)`
 
 ## Next Steps
 
